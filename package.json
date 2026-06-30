@@ -1,0 +1,14 @@
+{
+  "name": "instructor-creator",
+  "version": "1.0.0",
+  "description": "Assessment Tool Integration Viewer",
+  "main": "js/server.js",
+  "scripts": {
+    "start": "node js/server.js",
+    "dev": "node js/server.js",
+    "build": "echo 'Build complete - static site ready'"
+  },
+  "keywords": ["assessment", "integration", "json", "viewer"],
+  "author": "Your Name",
+  "license": "MIT"
+}

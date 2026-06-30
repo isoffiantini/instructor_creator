@@ -1,0 +1,1386 @@
+{
+  "title": "Default Assessment Tool Integration",
+  "description": "MVP installer for a generic assessment vendor integration. Creates assessment type storage, an application-level assessment form, import services for creation/results, and a Junction integration with sync, create, and result-update flows.",
+  
+  "instructions": [
+    {
+      "driver": "usermanagement",
+      "output": "|integration-user-id|",
+      "input": {
+        "personInfo": {
+          "firstName": "Assessment",
+          "lastName": "Integration"
+        },
+        "userAccountInfo": {
+          "username": "assessment.integration",
+          "email": "assessment.integration@avature.net",
+          "roleIds": [
+            "|integration-user-role-id|"
+          ]
+        }
+      },
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the **integration user**: `assessment.integration`.\n\n- **Purpose:** executor account for the default assessment integration.\n- **Depends on:** the role selected below.\n\nClick **Next** to continue."
+              }
+            ]
+          },
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::form",
+                "labelPosition": "TOP",
+                "fields": [
+                  {
+                    "type": "element::field",
+                    "label": "Integration user role",
+                    "required": true,
+                    "name": "|integration-user-role-id|",
+                    "element": {
+                      "type": "input::select",
+                      "flatValues": true,
+                      "options": {
+                        "api": "user_Role",
+                        "method": "getAllBuiltIn",
+                        "mapper": {
+                          "text": "name",
+                          "value": "id"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "driver": "lockboxmanagement",
+      "output": "|assessment-vendor-credential-id|",
+      "input": {
+        "name": "Assessment Vendor API Credential",
+        "description": "Credential shell for the assessment vendor API.",
+        "type": "basicAuthentication",
+        "encryptionCategory": "pgpProduction",
+        "scope": [
+          "companyPasswordManager"
+        ],
+        "availableIn": [
+          "junction"
+        ]
+      },
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the **credential shell**: `Assessment Vendor API Credential`.\n\n- **Type:** Basic Auth by default. Change this only if the vendor requires another authentication method.\n- **Scope:** Company Wide Password Manager.\n- **Available in:** Junction.\n\nEnter the final vendor credentials in Password Manager after the shell exists.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "driver": "configmanagement",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the **default assessment datasets**.\n\n- **Dataset:** `Assessment Types` stores vendor-provided assessment catalogs.\n- **Dataset:** `Assessment Status` stores lifecycle statuses used by the application form.\n- **Reusable dataset:** select an existing Active/Inactive dataset for the `Is Active?` field in Assessment Types.\n\nClick **Next** to continue."
+              }
+            ]
+          },
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::form",
+                "labelPosition": "TOP",
+                "fields": [
+                  {
+                    "type": "element::field",
+                    "label": "Existing Active/Inactive dataset",
+                    "required": true,
+                    "name": "|dataset-active-inactive-id|",
+                    "element": {
+                      "type": "input::select",
+                      "flatValues": true,
+                      "options": {
+                        "view": "dataset::list"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "input": [
+        {
+          "type": "create",
+          "fqn": "iats.dataset.spec",
+          "virtualId": "|dataset-assessment-types-id|",
+          "data": {
+            "spec": {
+              "title": "Assessment Types",
+              "fields": [
+                {
+                  "field": {
+                    "fieldNumber": 1,
+                    "label": "ID",
+                    "type": "SingleLineText"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 2,
+                    "label": "Name",
+                    "type": "SingleLineText"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 3,
+                    "label": "Duration in minutes",
+                    "type": "Number"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 4,
+                    "label": "Created Date",
+                    "type": "Date",
+                    "dateFormat": 4
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 5,
+                    "label": "Updated Date",
+                    "type": "Date",
+                    "dateFormat": 4
+                    
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 6,
+                    "label": "Is Active?",
+                    "type": "SingleOptionDataset",
+                    "schemaSpecIdDataset": "|dataset-active-inactive-id|"
+                  }
+                }
+              ],
+              "schemaTypeId": 3
+            },
+            "active": 1,
+            "nextFieldNumber": 7
+          }
+        },
+        {
+          "type": "create",
+          "fqn": "iats.dataset.spec",
+          "virtualId": "|dataset-assessment-status-id|",
+          "data": {
+            "spec": {
+              "title": "Assessment Status",
+              "fields": [
+                {
+                  "field": {
+                    "fieldNumber": 1,
+                    "label": "Code",
+                    "type": "SingleLineText"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 2,
+                    "label": "Label",
+                    "type": "SingleLineText"
+                  }
+                }
+              ],
+              "schemaTypeId": 3
+            },
+            "active": 1,
+            "nextFieldNumber": 3
+          }
+        }
+      ]
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-assessment-status-id|",
+        "value": {
+          "1": "Pending",
+          "2": "Assessment requested but not yet created"
+        }
+      },
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next steps will add the default **Assessment Status** values: `Pending`, `Created`, `Completed`, and `Error`.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-assessment-status-id|",
+        "value": {
+          "1": "Created",
+          "2": "Assessment was created successfully"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-assessment-status-id|",
+        "value": {
+          "1": "Completed",
+          "2": "Assessment result was received"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-assessment-status-id|",
+        "value": {
+          "1": "Error",
+          "2": "Assessment creation or result update failed"
+        }
+      }
+    },
+    {
+      "driver": "configmanagement",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the default **Assessment** form on the Job-Candidate relationship/application.\n\n- **Assessment ID:** vendor identifier used for deduplication.\n- **Status:** controlled status dataset.\n- **Status Additional Info:** error or lifecycle details.\n- **Assessment URL:** candidate-facing assessment link.\n- **Results Report URL:** recruiter-facing report link.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      },
+      "input": [
+        {
+          "type": "create",
+          "fqn": "iats.form.libraryitem",
+          "virtualId": "|form-assessment-library-item-id|",
+          "virtualIdsByPath": {
+            "/content/id": "|form-assessment-spec-id|",
+            "/content/spec/fields/0/field/schemaFieldId": "|field-assessment-id|",
+            "/content/spec/fields/1/field/schemaFieldId": "|field-assessment-status|",
+            "/content/spec/fields/2/field/schemaFieldId": "|field-assessment-status-info|",
+            "/content/spec/fields/3/field/schemaFieldId": "|field-assessment-url|",
+            "/content/spec/fields/4/field/schemaFieldId": "|field-assessment-results-report-url|"
+          },
+          "data": {
+            "id": null,
+            "libraryItemTypeId": 5,
+            "name": "Assessment",
+            "isActive": true,
+            "isProtected": false,
+            "access": 2,
+            "forceVisibility": true,
+            "description": "Stores assessment lifecycle data on the Job-Candidate relationship/application.",
+            "content": {
+              "spec": {
+                "title": "Assessment",
+                "description": "Stores assessment lifecycle data on the Job-Candidate relationship/application.",
+                "canonicalName": null,
+                "fields": [
+                  {
+                    "field": {
+                      "fieldNumber": 1,
+                      "label": "Assessment ID",
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "required": true,
+                      "saved": true,
+                      "editable": true,
+                      "schemaFieldId": null,
+                      "description": "",
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 2,
+                      "label": "Status",
+                      "type": "SingleOptionDataset",
+                      "visible": true,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "schemaFieldId": null,
+                      "description": "",
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "subtype": "dropdown",
+                      "schemaSpecIdDataset": "|dataset-assessment-status-id|",
+                      "datasetFilters": [],
+                      "optionFormat": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "optionFormatForJournal": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 3,
+                      "label": "Status Additional Info",
+                      "type": "MultiLineText",
+                      "visible": true,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "schemaFieldId": null,
+                      "description": "",
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "useMarkdownPreview": 0
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 4,
+                      "label": "Assessment URL",
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "schemaFieldId": null,
+                      "description": "",
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 5,
+                      "label": "Results Report URL",
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "schemaFieldId": null,
+                      "description": "",
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  }
+                ],
+                "schemaTypeId": 2
+              },
+              "active": 1,
+              "nextFieldNumber": 6,
+              "id": null,
+              "isLocked": 0,
+              "internationalizable": 0,
+              "formcompletionSettings": {
+                "schemaSpecId": null,
+                "isHideTitle": false,
+                "themeLibraryItemId": null,
+                "layoutAttachmentId": null,
+                "isRequireLogin": false
+              }
+            },
+            "tags": [],
+            "canonicalName": null
+          }
+        }
+      ]
+    },
+    {
+      "driver": "configmanagement",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the default **Import Services**.\n\n- **Assessment Creation:** writes the vendor assessment ID, status, details, and assessment URL to the application form.\n- **Assessment Results:** updates the same form with completion status, details, and the result report URL.\n- **Deduplication:** Candidate by Avature ID; Assessment form by `Assessment ID` related to the job.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      },
+      "input": [
+        {
+          "type": "create",
+          "fqn": "iats.importer.service",
+          "virtualId": "|import-service-assessment-creation-id|",
+          "data": {
+            "name": "Integration - Assessment Vendor - Assessment Creation - Parameters",
+            "description": "Stores immediate assessment creation response data on the Job-Candidate relationship.",
+            "callbackUrl": "",
+            "importerSpec": {
+              "entityTypeId": 2,
+              "entityExtensionId": 2,
+              "encoding": "AUTO",
+              "firstRowIsHeader": 1,
+              "delimiter": ",",
+              "dedupingCriteria": {
+                "isDedupByEntityId": true,
+                "isDedupByEmail": false,
+                "isDedupByEmailOrFullName": false,
+                "isDedupByFullName": false,
+                "isDedupByUserName": false,
+                "isDedupByTextField": false,
+                "isDedupByWebsite": false,
+                "isDedupByEmailAndZipCode": false,
+                "isDedupByCompoundRelatedRecordIds": false
+              },
+              "schemaFieldIdDedupingCriteriaTextField": null,
+              "dedupingAction": "importAndOverwrite",
+              "formsDedupingCriteria": [
+                {
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumberIfTableField": 0,
+                  "formTitle": "Assessment",
+                  "formDedupingCriteriaTypeId": 3,
+                  "schemaFieldNumberDeduping": 1,
+                  "type": "schemaFieldRelatedToJob"
+                }
+              ],
+              "workflowIdJob": null,
+              "workflowStatusIdJob": null,
+              "workflowIdPeople": null,
+              "columns": [
+                {
+                  "id": "builtin_entityId",
+                  "columnPosition": 1,
+                  "extraConfigurations": {},
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Avature ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": true
+                },
+                {
+                  "id": "builtin_person_linktorecord_link",
+                  "columnPosition": 2,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Link to job ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "builtin_person_linktorecord_stepUpdate",
+                  "columnPosition": 3,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Workflow Step ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_0_jobId_0",
+                  "columnPosition": 4,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": "id"
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Job to relate the form to - ID"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "DedupingField",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 0,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Job to relate the form to",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": null
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_1_jobId_0",
+                  "columnPosition": 5,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Assessment ID"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": true,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 1,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Assessment ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_2_jobId_0",
+                  "columnPosition": 6,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null,
+                    "schemaSpecIdDataset": "|dataset-assessment-status-id|", 
+                    "datasetOptionFormat": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Status"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleOptionDataset",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": "|dataset-assessment-status-id|",
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 2,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Status",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-status|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_3_jobId_0",
+                  "columnPosition": 7,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Status Additional Info"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "MultiLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 3,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Status Additional Info",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-status-info|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_4_jobId_0",
+                  "columnPosition": 8,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Assessment URL"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 4,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Assessment URL",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-url|"
+                }
+              ],
+              "appRoleIdDefault": null,
+              "appGroupIdDefault": null,
+              "notifyUserCreation": 0,
+              "firstLoginPlaceTypeId": 3,
+              "setEmailAccountsAsVerified": 0,
+              "noDuplicateAction": "ignore",
+              "alreadyLinkedAction": "updateStep",
+              "tags": [],
+              "schemaSpecIdDataset": null,
+              "relationshipsDedupingAction": "none",
+              "languageIdForSchemaFields": null,
+              "usedSchemaSpecIds": [],
+              "linkToJobOptions": {
+                "hasToAvoidInitialStep": 0,
+                "hasToAvoidNextStep": 0,
+                "hasToAvoidPreconditions": 0,
+                "hasToAvoidTriggers": 0,
+                "hasToLinkToClosedJobs": false,
+                "importerLinkToJobOptionsDefaultStepSourceId": null
+              },
+              "usedSchemaSpecIdsRelatedToJob": [
+                {
+                  "jobId": 0,
+                  "entityExtensionId": 3,
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "jobName": "",
+                  "schemaSpecTitle": "Assessment"
+                }
+              ],
+              "additionalIdentifierOnErrorReportColumnNumber": null,
+              "isProcessingEncryptedFields": 0,
+              "emailNotification": {
+                "email": null,
+                "hasNotificationOnlyIfError": true
+              }
+            },
+            "appUserIdDelegate": null,
+            "appUserIdExecutor": "|integration-user-id|",
+            "isActive": 1,
+            "versionId": 2,
+            "importerServiceQueueId": null,
+            "priority": 1
+          }
+        },
+        {
+          "type": "create",
+          "fqn": "iats.importer.service",
+          "virtualId": "|import-service-assessment-results-id|",
+          "data": {
+            "name": "Integration - Assessment Vendor - Assessment Results - Parameters",
+            "description": "Stores completed assessment result data on the Job-Candidate relationship.",
+            "callbackUrl": "",
+            "importerSpec": {
+              "entityTypeId": 2,
+              "entityExtensionId": 2,
+              "encoding": "AUTO",
+              "firstRowIsHeader": 1,
+              "delimiter": ",",
+              "dedupingCriteria": {
+                "isDedupByEntityId": true,
+                "isDedupByEmail": false,
+                "isDedupByEmailOrFullName": false,
+                "isDedupByFullName": false,
+                "isDedupByUserName": false,
+                "isDedupByTextField": false,
+                "isDedupByWebsite": false,
+                "isDedupByEmailAndZipCode": false,
+                "isDedupByCompoundRelatedRecordIds": false
+              },
+              "schemaFieldIdDedupingCriteriaTextField": null,
+              "dedupingAction": "importAndOverwrite",
+              "formsDedupingCriteria": [
+                {
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumberIfTableField": 0,
+                  "formTitle": "Assessment",
+                  "formDedupingCriteriaTypeId": 3,
+                  "schemaFieldNumberDeduping": 1,
+                  "type": "schemaFieldRelatedToJob"
+                }
+              ],
+              "workflowIdJob": null,
+              "workflowStatusIdJob": null,
+              "workflowIdPeople": null,
+              "columns": [
+                {
+                  "id": "builtin_entityId",
+                  "columnPosition": 1,
+                  "extraConfigurations": {},
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Avature ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": true
+                },
+                {
+                  "id": "builtin_person_linktorecord_link",
+                  "columnPosition": 2,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Link to job ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "builtin_person_linktorecord_stepUpdate",
+                  "columnPosition": 3,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Workflow Step ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_0_jobId_0",
+                  "columnPosition": 4,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": "id"
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Job to relate the form to - ID"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "DedupingField",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 0,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Job to relate the form to",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": null
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_1_jobId_0",
+                  "columnPosition": 5,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Assessment ID"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": true,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 1,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Assessment ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_2_jobId_0",
+                  "columnPosition": 6,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null,
+                    "schemaSpecIdDataset": "|dataset-assessment-status-id|",
+                    "datasetOptionFormat": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Status"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleOptionDataset",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": "|dataset-assessment-status-id|",
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 2,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Status",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-status|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_3_jobId_0",
+                  "columnPosition": 7,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Status Additional Info"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "MultiLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 3,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Status Additional Info",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-status-info|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_4_jobId_0",
+                  "columnPosition": 8,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Assessment URL"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 4,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Assessment URL",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-url|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-assessment-spec-id|_5_jobId_0",
+                  "columnPosition": 9,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Results Report URL"
+                  ],
+                  "columnType": "schema",
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "groupName": "job - Assessment",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Assessment",
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "schemaFieldNumber": 5,
+                  "tableFieldNumber": null,
+                  "formName": "Assessment",
+                  "fieldName": "Results Report URL",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-assessment-results-report-url|"
+                }
+              ],
+              "appRoleIdDefault": null,
+              "appGroupIdDefault": null,
+              "notifyUserCreation": 0,
+              "firstLoginPlaceTypeId": 3,
+              "setEmailAccountsAsVerified": 0,
+              "noDuplicateAction": "ignore",
+              "alreadyLinkedAction": "updateStep",
+              "tags": [],
+              "schemaSpecIdDataset": null,
+              "relationshipsDedupingAction": "none",
+              "languageIdForSchemaFields": null,
+              "usedSchemaSpecIds": [],
+              "linkToJobOptions": {
+                "hasToAvoidInitialStep": 0,
+                "hasToAvoidNextStep": 0,
+                "hasToAvoidPreconditions": 0,
+                "hasToAvoidTriggers": 0,
+                "hasToLinkToClosedJobs": false,
+                "importerLinkToJobOptionsDefaultStepSourceId": null
+              },
+              "usedSchemaSpecIdsRelatedToJob": [
+                {
+                  "jobId": 0,
+                  "entityExtensionId": 3,
+                  "schemaSpecId": "|form-assessment-spec-id|",
+                  "jobName": "",
+                  "schemaSpecTitle": "Assessment"
+                }
+              ],
+              "additionalIdentifierOnErrorReportColumnNumber": null,
+              "isProcessingEncryptedFields": 0,
+              "emailNotification": {
+                "email": null,
+                "hasNotificationOnlyIfError": true
+              }
+            },
+            "appUserIdDelegate": null,
+            "appUserIdExecutor": "|integration-user-id|",
+            "isActive": 1,
+            "versionId": 2,
+            "importerServiceQueueId": null,
+            "priority": 1
+          }
+        }
+      ]
+    },
+    {
+      "driver": "junctionmanagement",
+      "output": "|junction-assessment-vendor-library-item-id|",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will install the **Junction integration**: `assessmentVendor`.\n\n- **Flows:** `syncAssessmentTypes`, `createAssessment`, and `updateAssessmentResults`.\n- **Triggers:** workflow step action for creation; HTTP endpoint for result updates.\n- **Services:** the two Import Services, Integration Logs, the assessment-result endpoint slot, and execution history.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      },
+      "input": {
+        "manifest_version": 1,
+        "integration": {
+          "name": "Default Assessment Tool",
+          "description": "MVP integration for syncing assessment types, creating assessments, and importing assessment results.",
+          "code": "assessmentVendor",
+          "framework_type": 2,
+          "flows": [
+            {
+              "code": "syncAssessmentTypes",
+              "name": "Upload Assessment Types",
+              "type": "internalServers",
+              "credentialId": "|assessment-vendor-credential-id|",
+              "deployment": {
+                "version": 1,
+                "externalName": "assessmentVendor_syncAssessmentTypes",
+                "configuration": {
+                  "processGroupVariable|\"junction.instanceName\"": "{!instanceName}",
+                  "processGroupVariable|\"junction.intLogEndpoint\"": "{!junctionEvents}",
+                  "processGroupVariable|\"junction.integrationId\"": "{!integrationCode}",
+                  "processGroupVariable|\"junction.pipelineId\"": "{!flowCode}",
+                  "processGroupVariable|\"junction.vendorApiEndpoint\"": "{!parameter.General.vendorApiEndpoint}",
+                  "processGroupVariable|\"junction.vendorApiCredentials\"": "{!parameter.General.vendorApiCredentials}"
+                },
+                "type": "nifi",
+                "nifiVersion": "1.7"
+              },
+              "server": "internal1",
+              "path": "{!instanceName}/{!integrationCode}/{!flowCode}",
+              "triggers": []
+            },
+            {
+              "code": "createAssessment",
+              "name": "Create Assessment",
+              "type": "internalServers",
+              "credentialId": "|assessment-vendor-credential-id|",
+              "deployment": {
+                "version": 1,
+                "externalName": "assessmentVendor_createAssessment",
+                "configuration": {
+                  "processGroupVariable|\"junction.instanceName\"": "{!instanceName}",
+                  "processGroupVariable|\"junction.intLogEndpoint\"": "{!junctionEvents}",
+                  "processGroupVariable|\"junction.integrationId\"": "{!integrationCode}",
+                  "processGroupVariable|\"junction.pipelineId\"": "{!flowCode}",
+                  "processGroupVariable|\"junction.vendorApiEndpoint\"": "{!parameter.General.vendorApiEndpoint}",
+                  "processGroupVariable|\"junction.vendorApiCredentials\"": "{!parameter.General.vendorApiCredentials}",
+                  "processGroupVariable|\"junction.importService.apiKey\"": "{!service.assessment_creation.apiKey}",
+                  "processGroupVariable|\"junction.importServiceUrl\"": "{!service.assessment_creation.url}"
+                },
+                "type": "nifi",
+                "nifiVersion": "1.7"
+              },
+              "server": "internal1",
+              "path": "{!instanceName}/{!integrationCode}/{!flowCode}",
+              "triggers": [
+                {
+                  "name": "Create Assessment",
+                  "create_automatic_log_entries": true,
+                  "create_automatic_journal_entries": true,
+                  "description": "Creates an assessment when a candidate reaches the configured workflow step.",
+                  "type_id": 3,
+                  "include_name": true,
+                  "mapping": [
+                    {
+                      "label": "candidateId",
+                      "required": true
+                    },
+                    {
+                      "label": "jobId",
+                      "required": true
+                    },
+                    {
+                      "label": "candidateFirstName",
+                      "required": true
+                    },
+                    {
+                      "label": "candidateLastName",
+                      "required": true
+                    },
+                    {
+                      "label": "candidateEmail",
+                      "required": true
+                    },
+                    {
+                      "label": "candidatePhone",
+                      "required": false
+                    },
+                    {
+                      "label": "jobAssessmentType",
+                      "required": false
+                    },
+                    {
+                      "label": "resultEndpointURL",
+                      "required": true
+                    }
+                  ],
+                  "entity_id": 2,
+                  "entity_extension_id": 2
+                }
+              ]
+            },
+            {
+              "code": "updateAssessmentResults",
+              "name": "Update Assessment Results",
+              "type": "internalServers",
+              "deployment": {
+                "version": 1,
+                "externalName": "assessmentVendor_updateAssessmentResults",
+                "configuration": {
+                  "processGroupVariable|\"junction.instanceName\"": "{!instanceName}",
+                  "processGroupVariable|\"junction.intLogEndpoint\"": "{!junctionEvents}",
+                  "processGroupVariable|\"junction.integrationId\"": "{!integrationCode}",
+                  "processGroupVariable|\"junction.pipelineId\"": "{!flowCode}",
+                  "processGroupVariable|\"junction.vendorApiEndpoint\"": "{!parameter.General.vendorApiEndpoint}",
+                  "processGroupVariable|\"junction.vendorApiCredentials\"": "{!parameter.General.vendorApiCredentials}",
+                  "processGroupVariable|\"junction.importService.apiKey\"": "{!service.assessment_results.apiKey}",
+                  "processGroupVariable|\"junction.importServiceUrl\"": "{!service.assessment_results.url}",
+                  "processGroupVariable|\"Data Submission\".\"Retry Import Service\".\"junction.retry.maxRetries\"": "{!parameter.General.retryMaxRetries}"
+                },
+                "type": "nifi",
+                "nifiVersion": "1.7"
+              },
+              "server": "internal1",
+              "path": "{!instanceName}/{!integrationCode}/{!flowCode}",
+              "triggers": [
+                {
+                  "name": "Assessment Results Endpoint",
+                  "create_automatic_log_entries": true,
+                  "description": "HTTP POST endpoint that receives assessment result payloads from the vendor.",
+                  "type_id": 4,
+                  "include_name": false,
+                  "is_callback": false,
+                  "maxNumberOfHits": 10,
+                  "timeUnit": 1
+                }
+              ]
+            }
+          ],
+          "settings": {
+            "parameters": [
+              {
+                "name": "General",
+                "fields": [
+                  {
+                    "type": "element::field",
+                    "name": "vendorApiEndpoint",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Assessment vendor API endpoint",
+                    "element": {
+                      "type": "input::text",
+                      "inputType": "url"
+                    },
+                    "description": "Base or operation-specific endpoint used by the vendor API."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "vendorApiCredentials",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Assessment vendor API credentials/header",
+                    "element": {
+                      "type": "ifwk::input::2"
+                    },
+                    "description": "Authentication value used by the vendor API. Confirm format during implementation."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "retryMaxRetries",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Assessment result retry count",
+                    "element": {
+                      "type": "input::text",
+                      "initialValue": "5"
+                    },
+                    "description": "Maximum retry count for submitting assessment results to the Import Service."
+                  }
+                ]
+              }
+            ]
+          },
+          "services": [
+            {
+              "type": "importService",
+              "code": "assessment_creation",
+              "serviceId": "|import-service-assessment-creation-id|"
+            },
+            {
+              "type": "importService",
+              "code": "assessment_results",
+              "serviceId": "|import-service-assessment-results-id|"
+            },
+            {
+              "type": "customReport",
+              "code": "assessment_integration_logs"
+            },
+            {
+              "type": "customApi",
+              "code": "assessment_results_endpoint"
+            },
+            {
+              "type": "executionHistory",
+              "version": 2,
+              "enabled": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "driver": "configmanagement",
+      "input": [],
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "Everything that can be installed by this MVP instructor has been set up.\n\n**These parts still require confirmation:**\n\n- **Vendor credentials and endpoint:** enter final credentials in Password Manager and configure the endpoint/credential parameters.\n- **Assessment type sync:** confirm the vendor payload and map it to the `Assessment Types` dataset fields.\n- **Workflow step:** attach the `Create Assessment` trigger to the customer workflow step.\n- **Candidate email:** choose the correct candidate email source.\n- **Candidate phone:** choose the correct candidate phone source and decide whether it is required.\n- **Job assessment type:** confirm whether the job assessment type is needed and whether it should be sourced from the `Assessment Types` dataset.\n- **HTTP endpoint:** confirm the generated `updateAssessmentResults` endpoint URL and provide it to the vendor.\n- **Import services:** confirm API key/url service bindings and test deduplication by `Assessment ID` on the application form.\n- **URLs:** validate whether URL fields should remain text fields or use a stricter URL field/validator where available.\n\nClick **Next** to finish."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
