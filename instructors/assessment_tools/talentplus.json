@@ -1,0 +1,3660 @@
+{
+  "title": "Talent Plus Assessment Tool Integration",
+  "description": "Creates Talent Plus assessment orders from Avature and imports completed assessment results.",
+  "instructions": [
+    {
+      "driver": "usermanagement",
+      "output": "|integration-user-id|",
+      "input": {
+        "personInfo": {
+          "firstName": "Talent Plus",
+          "lastName": "Integration"
+        },
+        "userAccountInfo": {
+          "username": "talentplus.integration",
+          "email": "talentplus.integration@avature.net",
+          "roleIds": [
+            "|integration-user-role-id|"
+          ]
+        }
+      },
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the **integration user**: `talentplus.integration`.\n\n- **Purpose:** provide an executor account for Talent Plus automation.\n- **Depends on:** the role selected below.\n\nClick **Next** to continue."
+              }
+            ]
+          },
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::form",
+                "labelPosition": "TOP",
+                "fields": [
+                  {
+                    "type": "element::field",
+                    "label": "Integration user role",
+                    "element": {
+                      "type": "input::select",
+                      "flatValues": true,
+                      "options": {
+                        "api": "user_Role",
+                        "method": "getAllBuiltIn",
+                        "mapper": {
+                          "text": "name",
+                          "value": "id"
+                        }
+                      }
+                    },
+                    "required": true,
+                    "name": "|integration-user-role-id|"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "driver": "lockboxmanagement",
+      "output": "|talentplus-credential-id|",
+      "input": {
+        "name": "Talent Plus Basic Auth",
+        "description": "Basic Auth credential for the Talent Plus assessment order API.",
+        "type": "basicAuthentication",
+        "encryptionCategory": "pgpProduction",
+        "scope": [
+          "companyPasswordManager"
+        ],
+        "availableIn": [
+          "junction"
+        ]
+      },
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create the **credential shell**: `Talent Plus Basic Auth`.\n\n- **Type:** Basic Auth.\n- **Scope:** Company Wide Password Manager.\n- **Available in:** Junction.\n\nThe Talent Plus username and password still need to be entered in Password Manager after the credential exists.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "driver": "configmanagement",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create **controlled-value datasets** for Talent Plus.\n\n- **Dataset:** `Talent Plus Assessment Purpose` for `EXP`, `INP`, `RES`, `PRF`, and `BEN`.\n- **Dataset:** `Talent Plus Government ID Type` for `SSN` and `OTHER`.\n- **Dataset:** `Talent Plus Assessment Status` for `Registered`, `Completed`, and `Error`.\n\nPhone type values are handled through Contact Data phone configuration, not through a dataset. Click **Next** to continue."
+              }
+            ]
+          }
+        ]
+      },
+      "input": [
+        {
+          "type": "create",
+          "fqn": "iats.dataset.spec",
+          "virtualId": "|dataset-talentplus-assessment-purpose-id|",
+          "data": {
+            "spec": {
+              "title": "Talent Plus Assessment Purpose",
+              "fields": [
+                {
+                  "field": {
+                    "fieldNumber": 1,
+                    "label": "Code",
+                    "type": "SingleLineText"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 2,
+                    "label": "Label",
+                    "type": "SingleLineText"
+                  }
+                }
+              ],
+              "schemaTypeId": 3
+            },
+            "active": 1,
+            "nextFieldNumber": 3
+          }
+        },
+        {
+          "type": "create",
+          "fqn": "iats.dataset.spec",
+          "virtualId": "|dataset-talentplus-government-id-type-id|",
+          "data": {
+            "spec": {
+              "title": "Talent Plus Government ID Type",
+              "fields": [
+                {
+                  "field": {
+                    "fieldNumber": 1,
+                    "label": "Code",
+                    "type": "SingleLineText"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 2,
+                    "label": "Label",
+                    "type": "SingleLineText"
+                  }
+                }
+              ],
+              "schemaTypeId": 3
+            },
+            "active": 1,
+            "nextFieldNumber": 3
+          }
+        },
+        {
+          "type": "create",
+          "fqn": "iats.dataset.spec",
+          "virtualId": "|dataset-talentplus-assessment-status-id|",
+          "data": {
+            "spec": {
+              "title": "Talent Plus Assessment Status",
+              "fields": [
+                {
+                  "field": {
+                    "fieldNumber": 1,
+                    "label": "Code",
+                    "type": "SingleLineText"
+                  }
+                },
+                {
+                  "field": {
+                    "fieldNumber": 2,
+                    "label": "Label",
+                    "type": "SingleLineText"
+                  }
+                }
+              ],
+              "schemaTypeId": 3
+            },
+            "active": 1,
+            "nextFieldNumber": 3
+          }
+        }
+      ]
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-purpose-id|",
+        "value": {
+          "1": "EXP",
+          "2": "External Prediction"
+        }
+      },
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next steps will add **controlled values** for Talent Plus.\n\n- **Assessment Purpose:** `EXP`, `INP`, `RES`, `PRF`, and `BEN`.\n- **Government ID Type:** `SSN` and `OTHER`.\n- **Assessment Status:** `Registered`, `Completed`, and `Error`.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-purpose-id|",
+        "value": {
+          "1": "INP",
+          "2": "Internal Prediction"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-purpose-id|",
+        "value": {
+          "1": "RES",
+          "2": "Research"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-purpose-id|",
+        "value": {
+          "1": "PRF",
+          "2": "Profile"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-purpose-id|",
+        "value": {
+          "1": "BEN",
+          "2": "Benchmark"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-government-id-type-id|",
+        "value": {
+          "1": "SSN",
+          "2": "SSN"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-government-id-type-id|",
+        "value": {
+          "1": "OTHER",
+          "2": "OTHER"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-status-id|",
+        "value": {
+          "1": "Registered",
+          "2": "Returned after assessment order creation"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-status-id|",
+        "value": {
+          "1": "Completed",
+          "2": "Completed assessment result"
+        }
+      }
+    },
+    {
+      "driver": "datasetmanagement",
+      "input": {
+        "schemaSpecId": "|dataset-talentplus-assessment-status-id|",
+        "value": {
+          "1": "Error",
+          "2": "Talent Plus returned an error"
+        }
+      }
+    },
+    {
+      "driver": "configmanagement",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create **forms** on the Job-Candidate relationship.\n\n- **Form:** `Talent Plus Assessment Order / Status` stores immediate order responses.\n- **Form:** `Talent Plus Assessment Results` stores completed assessment result payloads.\n- **Dataset-backed fields:** assessment status, assessment purpose, and the existing Yes/No or true-false dataset selected below.\n\nClick **Next** to continue."
+              }
+            ]
+          },
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::form",
+                "labelPosition": "TOP",
+                "fields": [
+                  {
+                    "type": "element::field",
+                    "label": "Existing Yes/No or true-false dataset",
+                    "element": {
+                      "type": "input::select",
+                      "flatValues": true,
+                      "options": {
+                        "view": "dataset::list"
+                      }
+                    },
+                    "required": true,
+                    "name": "|dataset-yes-no-true-false-id|"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "input": [
+        {
+          "type": "create",
+          "fqn": "iats.form.libraryitem",
+          "virtualId": "|form-talentplus-order-status-library-item-id|",
+          "virtualIdsByPath": {
+            "/content/id": "|form-talentplus-order-status-spec-id|",
+            "/content/spec/fields/0/field/schemaFieldId": "|field-talentplus-order-status-status-id|",
+            "/content/spec/fields/1/field/schemaFieldId": "|field-talentplus-order-status-date-id|",
+            "/content/spec/fields/2/field/schemaFieldId": "|field-talentplus-order-status-receipt-id|",
+            "/content/spec/fields/3/field/schemaFieldId": "|field-talentplus-order-status-order-id|",
+            "/content/spec/fields/4/field/schemaFieldId": "|field-talentplus-order-status-receipt-owner-id|",
+            "/content/spec/fields/5/field/schemaFieldId": "|field-talentplus-order-status-order-owner-id|",
+            "/content/spec/fields/6/field/schemaFieldId": "|field-talentplus-order-status-external-employee-code-id|",
+            "/content/spec/fields/7/field/schemaFieldId": "|field-talentplus-order-status-assessment-url-id|",
+            "/content/spec/fields/8/field/schemaFieldId": "|field-talentplus-order-status-error-id|"
+          },
+          "data": {
+            "id": null,
+            "libraryItemTypeId": 5,
+            "name": "Talent Plus Assessment Order / Status",
+            "isActive": true,
+            "isProtected": false,
+            "access": 2,
+            "forceVisibility": true,
+            "description": "Stores Talent Plus immediate assessment order response and status data on the Job-Candidate relationship.",
+            "content": {
+              "spec": {
+                "title": "Talent Plus Assessment Order / Status",
+                "description": "Stores Talent Plus immediate assessment order response and status data on the Job-Candidate relationship.",
+                "canonicalName": null,
+                "fields": [
+                  {
+                    "field": {
+                      "fieldNumber": 1,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Status",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleOptionDataset",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "subtype": "dropdown",
+                      "schemaSpecIdDataset": "|dataset-talentplus-assessment-status-id|",
+                      "datasetFilters": [],
+                      "optionFormat": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "optionFormatForJournal": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "hasToKeepHistoricalValues": false,
+                      "prePopulateFieldIfOnlyOneOption": false,
+                      "hasSingleUseRowsDataset": 0,
+                      "allowsSemanticSuggestions": false,
+                      "enableSemanticSuggestions": false
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 2,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Status Date",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Date",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "dateFormat": 1
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 3,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Receipt ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 4,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Order ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": true,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 5,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Receipt ID Owner",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 6,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Order ID Owner",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 7,
+                      "mediaDescription": null,
+                      "label": "Talent Plus External Employee Code",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 8,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Assessment URL",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 9,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Error",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "MultiLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "useMarkdownPreview": 0
+                    }
+                  }
+                ],
+                "schemaTypeId": 2
+              },
+              "active": 1,
+              "nextFieldNumber": 10,
+              "id": null,
+              "isLocked": 0,
+              "internationalizable": 0,
+              "formcompletionSettings": {
+                "schemaSpecId": null,
+                "isHideTitle": false,
+                "themeLibraryItemId": null,
+                "layoutAttachmentId": null,
+                "isRequireLogin": false
+              }
+            },
+            "tags": [],
+            "canonicalName": null
+          }
+        },
+        {
+          "type": "create",
+          "fqn": "iats.form.libraryitem",
+          "virtualId": "|form-talentplus-results-library-item-id|",
+          "virtualIdsByPath": {
+            "/content/id": "|form-talentplus-results-spec-id|",
+            "/content/spec/fields/0/field/schemaFieldId": "|field-talentplus-results-assessment-status-id|",
+            "/content/spec/fields/1/field/schemaFieldId": "|field-talentplus-results-assessment-purpose-id|",
+            "/content/spec/fields/2/field/schemaFieldId": "|field-talentplus-results-client-id-id|",
+            "/content/spec/fields/3/field/schemaFieldId": "|field-talentplus-results-company-code-id|",
+            "/content/spec/fields/4/field/schemaFieldId": "|field-talentplus-results-company-interview-id|",
+            "/content/spec/fields/5/field/schemaFieldId": "|field-talentplus-results-completed-date-id|",
+            "/content/spec/fields/6/field/schemaFieldId": "|field-talentplus-results-description-id|",
+            "/content/spec/fields/7/field/schemaFieldId": "|field-talentplus-results-details-id|",
+            "/content/spec/fields/8/field/schemaFieldId": "|field-talentplus-results-error-id|",
+            "/content/spec/fields/9/field/schemaFieldId": "|field-talentplus-results-external-application-id|",
+            "/content/spec/fields/10/field/schemaFieldId": "|field-talentplus-results-external-employee-code-id|",
+            "/content/spec/fields/11/field/schemaFieldId": "|field-talentplus-results-url-id|",
+            "/content/spec/fields/12/field/schemaFieldId": "|field-talentplus-results-interviewee-name-id|",
+            "/content/spec/fields/13/field/schemaFieldId": "|field-talentplus-results-job-title-id|",
+            "/content/spec/fields/14/field/schemaFieldId": "|field-talentplus-results-language-id|",
+            "/content/spec/fields/15/field/schemaFieldId": "|field-talentplus-results-order-date-id|",
+            "/content/spec/fields/16/field/schemaFieldId": "|field-talentplus-results-order-id|",
+            "/content/spec/fields/17/field/schemaFieldId": "|field-talentplus-results-passed-id|",
+            "/content/spec/fields/18/field/schemaFieldId": "|field-talentplus-results-percent-score-id|",
+            "/content/spec/fields/19/field/schemaFieldId": "|field-talentplus-results-receipt-id|",
+            "/content/spec/fields/20/field/schemaFieldId": "|field-talentplus-results-recommendation-id|",
+            "/content/spec/fields/21/field/schemaFieldId": "|field-talentplus-results-status-date-id|"
+          },
+          "data": {
+            "id": null,
+            "libraryItemTypeId": 5,
+            "name": "Talent Plus Assessment Results",
+            "isActive": true,
+            "isProtected": false,
+            "access": 2,
+            "forceVisibility": true,
+            "description": "Stores completed Talent Plus assessment result data on the Job-Candidate relationship.",
+            "content": {
+              "spec": {
+                "title": "Talent Plus Assessment Results",
+                "description": "Stores completed Talent Plus assessment result data on the Job-Candidate relationship.",
+                "canonicalName": null,
+                "fields": [
+                  {
+                    "field": {
+                      "fieldNumber": 1,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Assessment Status",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleOptionDataset",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "subtype": "dropdown",
+                      "schemaSpecIdDataset": "|dataset-talentplus-assessment-status-id|",
+                      "datasetFilters": [],
+                      "optionFormat": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "optionFormatForJournal": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "hasToKeepHistoricalValues": false,
+                      "prePopulateFieldIfOnlyOneOption": false,
+                      "hasSingleUseRowsDataset": 0,
+                      "allowsSemanticSuggestions": false,
+                      "enableSemanticSuggestions": false
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 2,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Assessment Purpose",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleOptionDataset",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "subtype": "dropdown",
+                      "schemaSpecIdDataset": "|dataset-talentplus-assessment-purpose-id|",
+                      "datasetFilters": [],
+                      "optionFormat": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "optionFormatForJournal": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "hasToKeepHistoricalValues": false,
+                      "prePopulateFieldIfOnlyOneOption": false,
+                      "hasSingleUseRowsDataset": 0,
+                      "allowsSemanticSuggestions": false,
+                      "enableSemanticSuggestions": false
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 3,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Client ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Number",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "decimalsCount": 0,
+                      "isTrailingZeros": false,
+                      "displayFormatType": "numeric",
+                      "displayFormatSubType": "numeric",
+                      "numRatings": null,
+                      "isAllowHalfValues": false,
+                      "inputFormat": "numeric",
+                      "rangeMinValue": null,
+                      "rangeMaxValue": null
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 4,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Company Code",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 5,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Company Interview ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Number",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "decimalsCount": 0,
+                      "isTrailingZeros": false,
+                      "displayFormatType": "numeric",
+                      "displayFormatSubType": "numeric",
+                      "numRatings": null,
+                      "isAllowHalfValues": false,
+                      "inputFormat": "numeric",
+                      "rangeMinValue": null,
+                      "rangeMaxValue": null
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 6,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Completed Date",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Date",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "dateFormat": 1
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 7,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Description",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 8,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Details",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "MultiLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "useMarkdownPreview": 0
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 9,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Error",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "MultiLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "useMarkdownPreview": 0
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 10,
+                      "mediaDescription": null,
+                      "label": "Talent Plus External Application ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 11,
+                      "mediaDescription": null,
+                      "label": "Talent Plus External Employee Code",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 12,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Result URL",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 13,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Interviewee Name",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 14,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Job Title",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 15,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Language",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 16,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Order Date",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Date",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "dateFormat": 1
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 17,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Order ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": true,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 18,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Passed",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleOptionDataset",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "subtype": "dropdown",
+                      "schemaSpecIdDataset": "|dataset-yes-no-true-false-id|",
+                      "datasetFilters": [],
+                      "optionFormat": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "optionFormatForJournal": {
+                        "id": null,
+                        "components": [
+                          {
+                            "type": "field",
+                            "order": 0,
+                            "fieldNumberOrText": 1
+                          }
+                        ]
+                      },
+                      "hasToKeepHistoricalValues": false,
+                      "prePopulateFieldIfOnlyOneOption": false,
+                      "hasSingleUseRowsDataset": 0,
+                      "allowsSemanticSuggestions": false,
+                      "enableSemanticSuggestions": false
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 19,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Percent Score",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Number",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "decimalsCount": 2,
+                      "isTrailingZeros": false,
+                      "displayFormatType": "numeric",
+                      "displayFormatSubType": "numeric",
+                      "numRatings": null,
+                      "isAllowHalfValues": false,
+                      "inputFormat": "numeric",
+                      "rangeMinValue": null,
+                      "rangeMaxValue": null
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 20,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Receipt ID",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 21,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Recommendation",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "SingleLineText",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": []
+                    }
+                  },
+                  {
+                    "field": {
+                      "fieldNumber": 22,
+                      "mediaDescription": null,
+                      "label": "Talent Plus Status Date",
+                      "canViewValuesOnOwnRecord": false,
+                      "appRoleIdsRestrictedVisibility": [],
+                      "description": "",
+                      "defaultValue": null,
+                      "canonicalName": null,
+                      "validators": [],
+                      "useAsListFilter": false,
+                      "useAsListColumn": false,
+                      "appRoleIdsRestrictedEdition": [],
+                      "canEditValuesOnOwnRecord": false,
+                      "hasToIgnoreRolesRestrictionOnCreation": false,
+                      "hasToIgnoreConditionsOnCreation": false,
+                      "type": "Date",
+                      "visible": true,
+                      "schemaFieldId": null,
+                      "required": false,
+                      "saved": true,
+                      "editable": true,
+                      "displayConditions": [],
+                      "editConditions": [],
+                      "dateFormat": 1
+                    }
+                  }
+                ],
+                "schemaTypeId": 2
+              },
+              "active": 1,
+              "nextFieldNumber": 23,
+              "id": null,
+              "isLocked": 0,
+              "internationalizable": 0,
+              "formcompletionSettings": {
+                "schemaSpecId": null,
+                "isHideTitle": false,
+                "themeLibraryItemId": null,
+                "layoutAttachmentId": null,
+                "isRequireLogin": false
+              }
+            },
+            "tags": [],
+            "canonicalName": null
+          }
+        }
+      ]
+    },
+    {
+      "driver": "configmanagement",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will create **Import Services** for Talent Plus.\n\n- **Import Service:** `Integration - Talent Plus - Status Update - Parameters` targets Candidate records, dedupes by Avature Candidate ID, relates the order/status form to the job, and dedupes that form by `Talent Plus Order ID`.\n- **Import Service:** `Integration - Talent Plus - Save Assessment Results - Parameters` targets Candidate records, dedupes by Avature Candidate ID, relates the results form to the job, and dedupes that form by `Talent Plus Order ID`.\n- **Executor:** `|integration-user-id|`.\n- **Source files:** comma-delimited with a header row.\n\nBoth services include optional link-to-job and workflow-step columns. Customer-specific workflow behavior still needs to be confirmed after installation.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      },
+      "input": [
+        {
+          "type": "create",
+          "fqn": "iats.importer.service",
+          "virtualId": "|import-service-talentplus-status-update-id|",
+          "data": {
+            "name": "Integration - Talent Plus - Status Update - Parameters",
+            "description": "Stores immediate Talent Plus order response/status data on the Job-Candidate relationship.",
+            "callbackUrl": "",
+            "importerSpec": {
+              "entityTypeId": 2,
+              "entityExtensionId": 2,
+              "encoding": "AUTO",
+              "firstRowIsHeader": 1,
+              "delimiter": ",",
+              "dedupingCriteria": {
+                "isDedupByEntityId": true,
+                "isDedupByEmail": false,
+                "isDedupByEmailOrFullName": false,
+                "isDedupByFullName": false,
+                "isDedupByUserName": false,
+                "isDedupByTextField": false,
+                "isDedupByWebsite": false,
+                "isDedupByEmailAndZipCode": false,
+                "isDedupByCompoundRelatedRecordIds": false
+              },
+              "schemaFieldIdDedupingCriteriaTextField": null,
+              "dedupingAction": "importAndOverwrite",
+              "formsDedupingCriteria": [
+                {
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumberIfTableField": 0,
+                  "formTitle": "Talent Plus Assessment Order / Status",
+                  "formDedupingCriteriaTypeId": 3,
+                  "schemaFieldNumberDeduping": 4,
+                  "type": "schemaFieldRelatedToJob"
+                }
+              ],
+              "workflowIdJob": null,
+              "workflowStatusIdJob": null,
+              "workflowIdPeople": null,
+              "columns": [
+                {
+                  "id": "builtin_entityId",
+                  "columnPosition": 1,
+                  "extraConfigurations": {},
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Avature Candidate Id"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": true
+                },
+                {
+                  "id": "builtin_person_linktorecord_link",
+                  "columnPosition": 2,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Link to job - ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "builtin_person_linktorecord_stepUpdate",
+                  "columnPosition": 3,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Workflow step - ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_0_jobId_0",
+                  "columnPosition": 4,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "format": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Job to relate the form to - ID"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "DedupingField",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 0,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Job to relate the form to",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": null
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_1_jobId_0",
+                  "columnPosition": 5,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null,
+                    "schemaSpecIdDataset": "|dataset-talentplus-assessment-status-id|",
+                    "datasetOptionFormat": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "status"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleOptionDataset",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": "|dataset-talentplus-assessment-status-id|",
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 1,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Status",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-status-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_2_jobId_0",
+                  "columnPosition": 6,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": "Y-m-d"
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "statusDate"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Date",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 2,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Status Date",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-date-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_3_jobId_0",
+                  "columnPosition": 7,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "receiptId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 3,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Receipt ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-receipt-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_4_jobId_0",
+                  "columnPosition": 8,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "orderId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 4,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Order ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-order-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_5_jobId_0",
+                  "columnPosition": 9,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "receiptIdOwner"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 5,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Receipt ID Owner",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-receipt-owner-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_6_jobId_0",
+                  "columnPosition": 10,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "orderIdOwner"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 6,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Order ID Owner",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-order-owner-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_7_jobId_0",
+                  "columnPosition": 11,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "externalEmployeeCode"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 7,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus External Employee Code",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-external-employee-code-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_8_jobId_0",
+                  "columnPosition": 12,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "internetWebAddress"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 8,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Assessment URL",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-assessment-url-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-order-status-spec-id|_9_jobId_0",
+                  "columnPosition": 13,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "error"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Order / Status",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "MultiLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Order / Status",
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "schemaFieldNumber": 9,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Order / Status",
+                  "fieldName": "Talent Plus Error",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-order-status-error-id|"
+                }
+              ],
+              "appRoleIdDefault": null,
+              "appGroupIdDefault": null,
+              "notifyUserCreation": 0,
+              "firstLoginPlaceTypeId": 3,
+              "setEmailAccountsAsVerified": 0,
+              "noDuplicateAction": "ignore",
+              "alreadyLinkedAction": "updateStep",
+              "tags": [],
+              "schemaSpecIdDataset": null,
+              "relationshipsDedupingAction": "none",
+              "languageIdForSchemaFields": null,
+              "usedSchemaSpecIds": [],
+              "linkToJobOptions": {
+                "hasToAvoidInitialStep": 0,
+                "hasToAvoidNextStep": 0,
+                "hasToAvoidPreconditions": 0,
+                "hasToAvoidTriggers": 0,
+                "hasToLinkToClosedJobs": false,
+                "importerLinkToJobOptionsDefaultStepSourceId": null
+              },
+              "usedSchemaSpecIdsRelatedToJob": [
+                {
+                  "jobId": 0,
+                  "entityExtensionId": 3,
+                  "schemaSpecId": "|form-talentplus-order-status-spec-id|",
+                  "jobName": "",
+                  "schemaSpecTitle": "Talent Plus Assessment Order / Status"
+                }
+              ],
+              "additionalIdentifierOnErrorReportColumnNumber": null,
+              "isProcessingEncryptedFields": 0,
+              "emailNotification": {
+                "email": null,
+                "hasNotificationOnlyIfError": true
+              }
+            },
+            "appUserIdDelegate": null,
+            "appUserIdExecutor": "|integration-user-id|",
+            "isActive": 1,
+            "versionId": 2,
+            "importerServiceQueueId": null,
+            "priority": 1
+          }
+        },
+        {
+          "type": "create",
+          "fqn": "iats.importer.service",
+          "virtualId": "|import-service-talentplus-save-results-id|",
+          "data": {
+            "name": "Integration - Talent Plus - Save Assessment Results - Parameters",
+            "description": "Stores completed Talent Plus assessment result data on the Job-Candidate relationship.",
+            "callbackUrl": "",
+            "importerSpec": {
+              "entityTypeId": 2,
+              "entityExtensionId": 2,
+              "encoding": "AUTO",
+              "firstRowIsHeader": 1,
+              "delimiter": ",",
+              "dedupingCriteria": {
+                "isDedupByEntityId": true,
+                "isDedupByEmail": false,
+                "isDedupByEmailOrFullName": false,
+                "isDedupByFullName": false,
+                "isDedupByUserName": false,
+                "isDedupByTextField": false,
+                "isDedupByWebsite": false,
+                "isDedupByEmailAndZipCode": false,
+                "isDedupByCompoundRelatedRecordIds": false
+              },
+              "schemaFieldIdDedupingCriteriaTextField": null,
+              "dedupingAction": "importAndOverwrite",
+              "formsDedupingCriteria": [
+                {
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumberIfTableField": 0,
+                  "formTitle": "Talent Plus Assessment Results",
+                  "formDedupingCriteriaTypeId": 3,
+                  "schemaFieldNumberDeduping": 17,
+                  "type": "schemaFieldRelatedToJob"
+                }
+              ],
+              "workflowIdJob": null,
+              "workflowStatusIdJob": null,
+              "workflowIdPeople": null,
+              "columns": [
+                {
+                  "id": "builtin_entityId",
+                  "columnPosition": 1,
+                  "extraConfigurations": {},
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "externalPersonId"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": true
+                },
+                {
+                  "id": "builtin_person_linktorecord_link",
+                  "columnPosition": 2,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Link to job - ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "builtin_person_linktorecord_stepUpdate",
+                  "columnPosition": 3,
+                  "extraConfigurations": {
+                    "valueType": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Workflow step - ID"
+                  ],
+                  "columnType": "builtin",
+                  "isEncrypted": false,
+                  "isRequired": false
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_0_jobId_0",
+                  "columnPosition": 4,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "format": "id",
+                    "entityExtensionId": 3
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "Job to relate the form to - ID"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "DedupingField",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 0,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Job to relate the form to",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": null
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_1_jobId_0",
+                  "columnPosition": 5,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null,
+                    "schemaSpecIdDataset": "|dataset-talentplus-assessment-status-id|",
+                    "datasetOptionFormat": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "assessmentStatus"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleOptionDataset",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": "|dataset-talentplus-assessment-status-id|",
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 1,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Assessment Status",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-assessment-status-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_2_jobId_0",
+                  "columnPosition": 6,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null,
+                    "schemaSpecIdDataset": "|dataset-talentplus-assessment-purpose-id|",
+                    "datasetOptionFormat": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "assessmentPurpose"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleOptionDataset",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": "|dataset-talentplus-assessment-purpose-id|",
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 2,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Assessment Purpose",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-assessment-purpose-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_3_jobId_0",
+                  "columnPosition": 7,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "clientId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Number",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 3,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Client ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-client-id-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_4_jobId_0",
+                  "columnPosition": 8,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "companyCode"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 4,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Company Code",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-company-code-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_5_jobId_0",
+                  "columnPosition": 9,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "companyInterviewId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Number",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 5,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Company Interview ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-company-interview-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_6_jobId_0",
+                  "columnPosition": 10,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": "Y-m-d"
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "completedDate"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Date",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 6,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Completed Date",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-completed-date-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_7_jobId_0",
+                  "columnPosition": 11,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "description"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 7,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Description",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-description-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_8_jobId_0",
+                  "columnPosition": 12,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "details"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "MultiLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 8,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Details",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-details-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_9_jobId_0",
+                  "columnPosition": 13,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "error"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "MultiLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 9,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Error",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-error-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_10_jobId_0",
+                  "columnPosition": 14,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "externalApplicationId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 10,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus External Application ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-external-application-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_11_jobId_0",
+                  "columnPosition": 15,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "externalEmployeeCode"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 11,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus External Employee Code",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-external-employee-code-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_12_jobId_0",
+                  "columnPosition": 16,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "internetWebAddress"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 12,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Result URL",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-url-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_13_jobId_0",
+                  "columnPosition": 17,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "intervieweeName"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 13,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Interviewee Name",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-interviewee-name-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_14_jobId_0",
+                  "columnPosition": 18,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "jobTitle"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 14,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Job Title",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-job-title-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_15_jobId_0",
+                  "columnPosition": 19,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "lang"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 15,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Language",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-language-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_16_jobId_0",
+                  "columnPosition": 20,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": "Y-m-d"
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "orderDate"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Date",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 16,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Order Date",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-order-date-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_17_jobId_0",
+                  "columnPosition": 21,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "orderId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": true,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 17,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Order ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-order-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_18_jobId_0",
+                  "columnPosition": 22,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null,
+                    "schemaSpecIdDataset": "|dataset-yes-no-true-false-id|",
+                    "datasetOptionFormat": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "passed"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleOptionDataset",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": "|dataset-yes-no-true-false-id|",
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 18,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Passed",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-passed-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_19_jobId_0",
+                  "columnPosition": 23,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "percentScore"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Number",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 19,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Percent Score",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-percent-score-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_20_jobId_0",
+                  "columnPosition": 24,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "receiptId"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 20,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Receipt ID",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-receipt-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_21_jobId_0",
+                  "columnPosition": 25,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": null
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "recommendation"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "SingleLineText",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 21,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Recommendation",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-recommendation-id|"
+                },
+                {
+                  "id": "schemaFieldRelatedToJob_|form-talentplus-results-spec-id|_22_jobId_0",
+                  "columnPosition": 26,
+                  "extraConfigurations": {
+                    "isTableField": 0,
+                    "entityExtensionId": 3,
+                    "actionTypeId": null,
+                    "deleteExistingWhenEmpty": false,
+                    "format": "Y-m-d"
+                  },
+                  "conversionTableId": null,
+                  "valueDefault": null,
+                  "possibleNames": [
+                    "statusDate"
+                  ],
+                  "columnType": "schema",
+                  "groupName": "job - Talent Plus Assessment Results",
+                  "isDefaultable": true,
+                  "isConvertible": true,
+                  "isEncrypted": false,
+                  "isRequired": false,
+                  "columnInfoMessage": "",
+                  "type": "schemaFieldRelatedToJob",
+                  "fieldType": "Date",
+                  "wrappedFieldType": null,
+                  "schemaSpecIdDataset": null,
+                  "isSchemaFieldRelatedtoJob": true,
+                  "targetId": null,
+                  "jobIdToRelate": 0,
+                  "jobTitleToRelate": "job - Talent Plus Assessment Results",
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "schemaFieldNumber": 22,
+                  "tableFieldNumber": null,
+                  "formName": "Talent Plus Assessment Results",
+                  "fieldName": "Talent Plus Status Date",
+                  "innerFields": [],
+                  "isMultipleSelectColumn": false,
+                  "schemaFieldId": "|field-talentplus-results-status-date-id|"
+                }
+              ],
+              "appRoleIdDefault": null,
+              "appGroupIdDefault": null,
+              "notifyUserCreation": 0,
+              "firstLoginPlaceTypeId": 3,
+              "setEmailAccountsAsVerified": 0,
+              "noDuplicateAction": "ignore",
+              "alreadyLinkedAction": "updateStep",
+              "tags": [],
+              "schemaSpecIdDataset": null,
+              "relationshipsDedupingAction": "none",
+              "languageIdForSchemaFields": null,
+              "usedSchemaSpecIds": [],
+              "linkToJobOptions": {
+                "hasToAvoidInitialStep": 0,
+                "hasToAvoidNextStep": 0,
+                "hasToAvoidPreconditions": 0,
+                "hasToAvoidTriggers": 0,
+                "hasToLinkToClosedJobs": false,
+                "importerLinkToJobOptionsDefaultStepSourceId": null
+              },
+              "usedSchemaSpecIdsRelatedToJob": [
+                {
+                  "jobId": 0,
+                  "entityExtensionId": 3,
+                  "schemaSpecId": "|form-talentplus-results-spec-id|",
+                  "jobName": "",
+                  "schemaSpecTitle": "Talent Plus Assessment Results"
+                }
+              ],
+              "additionalIdentifierOnErrorReportColumnNumber": null,
+              "isProcessingEncryptedFields": 0,
+              "emailNotification": {
+                "email": null,
+                "hasNotificationOnlyIfError": true
+              }
+            },
+            "appUserIdDelegate": null,
+            "appUserIdExecutor": "|integration-user-id|",
+            "isActive": 1,
+            "versionId": 2,
+            "importerServiceQueueId": null,
+            "priority": 1
+          }
+        }
+      ]
+    },
+    {
+      "driver": "junctionmanagement",
+      "output": "|junction-talentplus-library-item-id|",
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "The next step will install the **Junction integration**: `talentplus`.\n\n- **Flows:** `requestassessment`, `trayicontrigger`, and `assessmentresult`.\n- **Triggers:** workflow step, tray icon, and HTTP endpoint.\n- **Services:** the two Import Services, Integration Logs, the assessment-result endpoint slot, and execution history.\n- **Flow placement:** these flows run on the internal Junction server.\n- **Flow Configuration:** uses services, instance variables, and generated parameters instead of hardcoded deployment values.\n\nClick **Next** to continue."
+              }
+            ]
+          }
+        ]
+      },
+      "input": {
+        "manifest_version": 1,
+        "integration": {
+          "name": "Talent Plus Assessment Tool",
+          "description": "Creates Talent Plus assessment orders from Avature and receives completed assessment results.",
+          "code": "talentplus",
+          "framework_type": 2,
+          "flows": [
+            {
+              "code": "requestassessment",
+              "name": "Request Assessment",
+              "type": "internalServers",
+              "credentialId": "|talentplus-credential-id|",
+              "deployment": {
+                "version": 1,
+                "externalName": "talentplus_requestassessment",
+                "configuration": {
+                  "processGroupVariable|\"junction.api.credentials\"": "{!parameter.General.talentPlusApiCredentials}",
+                  "processGroupVariable|\"junction.api.endpoint\"": "{!parameter.General.talentPlusApiEndpoint}",
+                  "processGroupVariable|\"junction.importService.apiKey\"": "{!service.talentplus_status_update.apiKey}",
+                  "processGroupVariable|\"junction.importServiceUrl\"": "{!service.talentplus_status_update.url}",
+                  "processGroupVariable|\"junction.instanceName\"": "{!instanceName}",
+                  "processGroupVariable|\"junction.intLogEndpoint\"": "{!junctionEvents}",
+                  "processGroupVariable|\"junction.integrationId\"": "{!integrationCode}",
+                  "processGroupVariable|\"junction.pipelineId\"": "{!flowCode}",
+                  "processGroupVariable|\"junction.pipelineId_ty\"": "{!parameter.General.trayIconPipelineCode}",
+                  "processorProperty|\"TriggerIntegration\".\"HandleHttpResponse\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"TriggerTrayIcon\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"TriggerTrayIcon\".\"Listening Service\"": "controllerService{root.controllerServices.HttpListeningServiceImpl}",
+                  "processorProperty|\"TriggerIntegration\".\"triggerWorkflowStep\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"triggerWorkflowStep\".\"Listening Service\"": "controllerService{root.controllerServices.HttpListeningServiceImpl}",
+                  "processGroupVariable|\"junction.clientId\"": "{!parameter.General.clientId}",
+                  "processGroupVariable|\"junction.emailInvite\"": "{!parameter.General.defaultEmailInvite}",
+                  "processGroupVariable|\"junction.redirectURL\"": "{!parameter.General.redirectURL}"
+                },
+                "type": "nifi",
+                "nifiVersion": "1.7"
+              },
+              "server": "internal1",
+              "path": "{!instanceName}/{!integrationCode}/{!flowCode}",
+              "triggers": [
+                {
+                  "name": "Talent Plus Request Assessment - Workflow Step",
+                  "create_automatic_log_entries": true,
+                  "create_automatic_journal_entries": true,
+                  "description": "Creates a Talent Plus assessment order when a candidate reaches the configured workflow step.",
+                  "type_id": 3,
+                  "include_name": true,
+                  "mapping": [
+                    {
+                      "label": "clientId",
+                      "required": true
+                    },
+                    {
+                      "label": "companyInterviewId",
+                      "required": true
+                    },
+                    {
+                      "label": "assessmentCode",
+                      "required": false
+                    },
+                    {
+                      "label": "country",
+                      "required": false
+                    },
+                    {
+                      "label": "email",
+                      "required": true
+                    },
+                    {
+                      "label": "emailInvite",
+                      "required": false
+                    },
+                    {
+                      "label": "ethnicBackground",
+                      "required": false
+                    },
+                    {
+                      "label": "externalRecruiterName",
+                      "required": false
+                    },
+                    {
+                      "label": "addrLine1",
+                      "required": false
+                    },
+                    {
+                      "label": "addrLine2",
+                      "required": false
+                    },
+                    {
+                      "label": "assessmentPurpose",
+                      "required": false
+                    },
+                    {
+                      "label": "assessmentRequesterEmail",
+                      "required": false
+                    },
+                    {
+                      "label": "categoryName",
+                      "required": false
+                    },
+                    {
+                      "label": "city",
+                      "required": false
+                    },
+                    {
+                      "label": "firstName",
+                      "required": true
+                    },
+                    {
+                      "label": "gender",
+                      "required": false
+                    },
+                    {
+                      "label": "govtId",
+                      "required": false
+                    },
+                    {
+                      "label": "govtIdType",
+                      "required": false
+                    },
+                    {
+                      "label": "hiringManagerEmail",
+                      "required": false
+                    },
+                    {
+                      "label": "hrManagerEmail",
+                      "required": false
+                    },
+                    {
+                      "label": "jobCode",
+                      "required": false
+                    },
+                    {
+                      "label": "jobReqCode",
+                      "required": true
+                    },
+                    {
+                      "label": "jobTitle",
+                      "required": true
+                    },
+                    {
+                      "label": "lang",
+                      "required": false
+                    },
+                    {
+                      "label": "lastName",
+                      "required": true
+                    },
+                    {
+                      "label": "locationCode",
+                      "required": false
+                    },
+                    {
+                      "label": "locationName",
+                      "required": false
+                    },
+                    {
+                      "label": "middleName",
+                      "required": false
+                    },
+                    {
+                      "label": "orderId",
+                      "required": true
+                    },
+                    {
+                      "label": "orderIdOwner",
+                      "required": false
+                    },
+                    {
+                      "label": "phone",
+                      "required": false
+                    },
+                    {
+                      "label": "phoneType",
+                      "required": false
+                    },
+                    {
+                      "label": "positionCode",
+                      "required": false
+                    },
+                    {
+                      "label": "positionName",
+                      "required": false
+                    },
+                    {
+                      "label": "preferredName",
+                      "required": false
+                    },
+                    {
+                      "label": "prefix",
+                      "required": false
+                    },
+                    {
+                      "label": "redirectURL",
+                      "required": false
+                    },
+                    {
+                      "label": "state",
+                      "required": false
+                    },
+                    {
+                      "label": "subCategoryName",
+                      "required": false
+                    },
+                    {
+                      "label": "suffix",
+                      "required": false
+                    },
+                    {
+                      "label": "zip",
+                      "required": false
+                    },
+                    {
+                      "label": "resultEndpointURL",
+                      "required": true
+                    }
+                  ],
+                  "entity_id": 2,
+                  "entity_extension_id": 2
+                }
+              ]
+            },
+            {
+              "code": "trayicontrigger",
+              "name": "Tray Icon Trigger",
+              "type": "internalServers",
+              "credentialId": "|talentplus-credential-id|",
+              "deployment": {
+                "version": 1,
+                "externalName": "talentplus_trayicontrigger",
+                "configuration": {
+                  "processGroupVariable|\"junction.api.credentials\"": "{!parameter.General.talentPlusApiCredentials}",
+                  "processGroupVariable|\"junction.api.endpoint\"": "{!parameter.General.talentPlusApiEndpoint}",
+                  "processGroupVariable|\"junction.importService.apiKey\"": "{!service.talentplus_status_update.apiKey}",
+                  "processGroupVariable|\"junction.importServiceUrl\"": "{!service.talentplus_status_update.url}",
+                  "processGroupVariable|\"junction.instanceName\"": "{!instanceName}",
+                  "processGroupVariable|\"junction.intLogEndpoint\"": "{!junctionEvents}",
+                  "processGroupVariable|\"junction.integrationId\"": "{!integrationCode}",
+                  "processGroupVariable|\"junction.pipelineId\"": "{!flowCode}",
+                  "processGroupVariable|\"junction.pipelineId_ty\"": "{!flowCode}",
+                  "processorProperty|\"TriggerIntegration\".\"HandleHttpResponse\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"TriggerTrayIcon\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"TriggerTrayIcon\".\"Listening Service\"": "controllerService{root.controllerServices.HttpListeningServiceImpl}",
+                  "processorProperty|\"TriggerIntegration\".\"triggerWorkflowStep\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"triggerWorkflowStep\".\"Listening Service\"": "controllerService{root.controllerServices.HttpListeningServiceImpl}",
+                  "processGroupVariable|\"junction.clientId\"": "{!parameter.General.clientId}",
+                  "processGroupVariable|\"junction.emailInvite\"": "{!parameter.General.defaultEmailInvite}",
+                  "processGroupVariable|\"junction.redirectURL\"": "{!parameter.General.redirectURL}"
+                },
+                "type": "nifi",
+                "nifiVersion": "1.7"
+              },
+              "server": "internal1",
+              "path": "{!instanceName}/{!integrationCode}/{!flowCode}",
+              "triggers": [
+                {
+                  "name": "Talent Plus Request Assessment - Tray Icon",
+                  "create_automatic_log_entries": true,
+                  "create_automatic_journal_entries": true,
+                  "description": "Manual trigger for creating or retrying a Talent Plus assessment order.",
+                  "type_id": 5,
+                  "include_name": true,
+                  "mapping": [
+                    {
+                      "label": "clientId",
+                      "required": true
+                    },
+                    {
+                      "label": "companyInterviewId",
+                      "required": true
+                    },
+                    {
+                      "label": "assessmentCode",
+                      "required": false
+                    },
+                    {
+                      "label": "country",
+                      "required": false
+                    },
+                    {
+                      "label": "email",
+                      "required": true
+                    },
+                    {
+                      "label": "emailInvite",
+                      "required": false
+                    },
+                    {
+                      "label": "ethnicBackground",
+                      "required": false
+                    },
+                    {
+                      "label": "externalRecruiterName",
+                      "required": false
+                    },
+                    {
+                      "label": "addrLine1",
+                      "required": false
+                    },
+                    {
+                      "label": "addrLine2",
+                      "required": false
+                    },
+                    {
+                      "label": "assessmentPurpose",
+                      "required": false
+                    },
+                    {
+                      "label": "assessmentRequesterEmail",
+                      "required": false
+                    },
+                    {
+                      "label": "categoryName",
+                      "required": false
+                    },
+                    {
+                      "label": "city",
+                      "required": false
+                    },
+                    {
+                      "label": "firstName",
+                      "required": true
+                    },
+                    {
+                      "label": "gender",
+                      "required": false
+                    },
+                    {
+                      "label": "govtId",
+                      "required": false
+                    },
+                    {
+                      "label": "govtIdType",
+                      "required": false
+                    },
+                    {
+                      "label": "hiringManagerEmail",
+                      "required": false
+                    },
+                    {
+                      "label": "hrManagerEmail",
+                      "required": false
+                    },
+                    {
+                      "label": "jobCode",
+                      "required": false
+                    },
+                    {
+                      "label": "jobReqCode",
+                      "required": true
+                    },
+                    {
+                      "label": "jobTitle",
+                      "required": true
+                    },
+                    {
+                      "label": "lang",
+                      "required": false
+                    },
+                    {
+                      "label": "lastName",
+                      "required": true
+                    },
+                    {
+                      "label": "locationCode",
+                      "required": false
+                    },
+                    {
+                      "label": "locationName",
+                      "required": false
+                    },
+                    {
+                      "label": "middleName",
+                      "required": false
+                    },
+                    {
+                      "label": "orderId",
+                      "required": true
+                    },
+                    {
+                      "label": "orderIdOwner",
+                      "required": false
+                    },
+                    {
+                      "label": "phone",
+                      "required": false
+                    },
+                    {
+                      "label": "phoneType",
+                      "required": false
+                    },
+                    {
+                      "label": "positionCode",
+                      "required": false
+                    },
+                    {
+                      "label": "positionName",
+                      "required": false
+                    },
+                    {
+                      "label": "preferredName",
+                      "required": false
+                    },
+                    {
+                      "label": "prefix",
+                      "required": false
+                    },
+                    {
+                      "label": "redirectURL",
+                      "required": false
+                    },
+                    {
+                      "label": "state",
+                      "required": false
+                    },
+                    {
+                      "label": "subCategoryName",
+                      "required": false
+                    },
+                    {
+                      "label": "suffix",
+                      "required": false
+                    },
+                    {
+                      "label": "zip",
+                      "required": false
+                    },
+                    {
+                      "label": "resultEndpointURL",
+                      "required": true
+                    }
+                  ],
+                  "entity_id": 2,
+                  "entity_extension_id": 2
+                }
+              ]
+            },
+            {
+              "code": "assessmentresult",
+              "name": "Assessment Result",
+              "type": "internalServers",
+              "deployment": {
+                "version": 1,
+                "externalName": "talentplus_assessmentresult",
+                "configuration": {
+                  "processGroupVariable|\"junction.importService.apiKey\"": "{!service.talentplus_save_results.apiKey}",
+                  "processGroupVariable|\"junction.importServiceUrl\"": "{!service.talentplus_save_results.url}",
+                  "processGroupVariable|\"junction.instanceName\"": "{!instanceName}",
+                  "processGroupVariable|\"junction.intLogEndpoint\"": "{!junctionEvents}",
+                  "processGroupVariable|\"junction.integrationId\"": "{!integrationCode}",
+                  "processGroupVariable|\"junction.pipelineId\"": "{!flowCode}",
+                  "processGroupVariable|\"Data Submission\".\"Retry Import Service\".\"junction.retry.maxRetries\"": "{!parameter.General.retryMaxRetries}",
+                  "processorProperty|\"DataTransformation\".\"LogHTTP Response\".\"SendResponse\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"PathHandleHttpRequest\".\"HTTP Context Map\"": "controllerService{root.controllerServices.StandardHttpContextMap (NiFi-Flow)}",
+                  "processorProperty|\"TriggerIntegration\".\"PathHandleHttpRequest\".\"Listening Service\"": "controllerService{root.controllerServices.HttpListeningServiceImpl}"
+                },
+                "type": "nifi",
+                "nifiVersion": "1.7"
+              },
+              "server": "internal1",
+              "path": "{!instanceName}/{!integrationCode}/{!flowCode}",
+              "triggers": [
+                {
+                  "name": "Talent Plus Assessment Result Endpoint",
+                  "create_automatic_log_entries": true,
+                  "description": "HTTP POST endpoint that receives completed Talent Plus assessment result payloads.",
+                  "type_id": 4,
+                  "include_name": false,
+                  "is_callback": false,
+                  "maxNumberOfHits": 10,
+                  "timeUnit": 1
+                }
+              ]
+            }
+          ],
+          "settings": {
+            "parameters": [
+              {
+                "name": "General",
+                "fields": [
+                  {
+                    "type": "element::field",
+                    "name": "talentPlusApiEndpoint",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Talent Plus assessment order endpoint",
+                    "element": {
+                      "type": "input::text",
+                      "inputType": "url",
+                      "initialValue": "https://sandbox.talentbankonline.com/TBEX/api/rest/assessmentOrder/v2/aor.rest"
+                    },
+                    "description": "Use the sandbox endpoint for tests and replace it with the customer production endpoint before production release."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "talentPlusApiCredentials",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Talent Plus Basic Auth header",
+                    "element": {
+                      "type": "ifwk::input::2"
+                    },
+                    "description": "Authorization header used by the Talent Plus REST API, in the format `Basic <base64(username:password)>`."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "clientId",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Talent Plus client ID",
+                    "element": {
+                      "type": "input::text"
+                    },
+                    "description": "Customer company ID provided by Talent Plus and sent in assessment order requests."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "defaultEmailInvite",
+                    "required": false,
+                    "sensitive": true,
+                    "label": "Default emailInvite value",
+                    "element": {
+                      "type": "input::switch",
+                      "checked": false
+                    },
+                    "description": "Talent Plus defaults this value to false when it is not provided."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "redirectURL",
+                    "required": false,
+                    "sensitive": true,
+                    "label": "Redirect URL",
+                    "element": {
+                      "type": "input::text",
+                      "inputType": "url"
+                    },
+                    "description": "Optional redirect URL after questionnaire completion."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "trayIconPipelineCode",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Tray icon flow code",
+                    "element": {
+                      "type": "input::text",
+                      "initialValue": "trayicontrigger"
+                    },
+                    "description": "Flow code used by the shared request-assessment deployment when it routes manual tray icon executions."
+                  },
+                  {
+                    "type": "element::field",
+                    "name": "retryMaxRetries",
+                    "required": true,
+                    "sensitive": true,
+                    "label": "Assessment result retry count",
+                    "element": {
+                      "type": "input::text",
+                      "initialValue": "5"
+                    },
+                    "description": "Maximum retry count for submitting assessment results to the Save Assessment Results Import Service."
+                  }
+                ]
+              }
+            ]
+          },
+          "services": [
+            {
+              "type": "importService",
+              "code": "talentplus_status_update",
+              "serviceId": "|import-service-talentplus-status-update-id|"
+            },
+            {
+              "type": "importService",
+              "code": "talentplus_save_results",
+              "serviceId": "|import-service-talentplus-save-results-id|"
+            },
+            {
+              "type": "customReport",
+              "code": "talentplus_integration_logs"
+            },
+            {
+              "type": "customApi",
+              "code": "talentplus_assessment_results"
+            },
+            {
+              "type": "executionHistory",
+              "version": 2,
+              "enabled": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "driver": "configmanagement",
+      "input": [],
+      "render": {
+        "type": "layout::simple",
+        "content": [
+          {
+            "type": "container::section",
+            "content": [
+              {
+                "type": "element::markdown",
+                "text": "Everything that can be installed by this Instructor file has been set up.\n\n**These parts are still missing or require confirmation:**\n\n- **Talent Plus credentials:** enter the Talent Plus username and password in Password Manager, and configure the generated `Talent Plus Basic Auth header` parameter with `Basic <base64(username:password)>` if the NiFi deployment expects the header value.\n- **Talent Plus customer values:** confirm the customer `clientId`, production assessment endpoint, default `emailInvite` value, optional `redirectURL`, and assessment code strategy before production release.\n- **Import Service API access:** confirm the API key and URL for `Integration - Talent Plus - Status Update - Parameters` and `Integration - Talent Plus - Save Assessment Results - Parameters` through the Junction service bindings.\n- **Custom API / HTTP endpoint:** confirm the `assessmentresult` HTTP endpoint URL and copy it into the outbound `resultEndpointURL` mapping. Whitelist Talent Plus IPs from the implementation brief.\n- **Custom Report:** create or attach the Integration Logs report for `talentplus_integration_logs` if it is not already available in the target instance.\n- **Workflow and tray icon setup:** attach the workflow-step trigger to the customer workflow step, confirm tray icon placement/label, and decide whether Import Service columns for link-to-job and workflow-step updates should be used or left blank.\n- **Outbound service mappings:** map customer source fields for candidate identity, job fields, `companyInterviewId` or `assessmentCode`, `resultEndpointURL`, and optional Talent Plus fields. Phone type must come from Contact Data phone configuration, not from a dataset.\n- **Reusable datasets:** reuse existing gender, country, language, recommendation, and Yes/No or true-false datasets where suitable. This installer only creates Talent Plus-specific controlled datasets that were not marked as default Core App datasets.\n- **Date handling:** validate whether `completedDate`, `orderDate`, and `statusDate` should be truncated to `yyyy-MM-dd` or handled as date-time values before production release.\n- **Junction instance configuration:** enable Junction in IATS config with the correct `externalBaseUrl`; reset the instance when required for HTTP endpoint configuration.\n- **Import column order:** the source brief skips result column numbers 16 and 19. This installer preserves the listed source-field order; validate the final CSV column order during implementation.\n\nClick **Next** to finish."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
