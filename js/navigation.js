@@ -1,4 +1,3 @@
-// Navigation Module - Handles step navigation
 const Navigation = {
     currentStep: 0,
     steps: [],
@@ -19,11 +18,11 @@ const Navigation = {
 
     goToStep(index) {
         if (index < 0 || index >= this.steps.length) return;
-        
+
         this.currentStep = index;
         const section = this.steps[index];
         const data = this.getSectionData(section.id);
-        
+
         Renderer.renderSection(section, data);
         Renderer.renderStepIndicator(index, this.steps.length);
         Renderer.updateButtons(index, this.steps.length);
@@ -31,20 +30,24 @@ const Navigation = {
 
     getSectionData(sectionId) {
         if (!this.data) return null;
-        
+
         const instructions = this.data.instructions || [];
-        
+
         switch(sectionId) {
+            case 'overview':
+                return null;
             case 'datasets':
                 return Parser.extractDatasets(instructions);
             case 'form':
-                return Parser.extractForm(instructions);
+                return Parser.extractAllForms(instructions);
             case 'imports':
                 return Parser.extractImports(instructions);
             case 'integration':
                 return Parser.extractIntegration(instructions);
             case 'triggers':
                 return Parser.extractTriggers(instructions);
+            case 'export':
+                return null;
             default:
                 return null;
         }
@@ -54,7 +57,7 @@ const Navigation = {
         if (this.currentStep < this.steps.length - 1) {
             this.goToStep(this.currentStep + 1);
         } else {
-            Renderer.showStatus('✅ All components have been reviewed!', 'success');
+            Renderer.showStatus('All components have been reviewed!', 'success');
         }
     },
 
