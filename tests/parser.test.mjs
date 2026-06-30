@@ -288,6 +288,93 @@ describe('Import service sync on field changes', () => {
     });
 });
 
+describe('Field type properties', () => {
+    it('createFieldObject includes common extra properties', () => {
+        const p = createParser();
+        const field = p.createFieldObject(1, 'Test', 'SingleLineText');
+        assert.equal(field.field.mediaDescription, null);
+        assert.equal(field.field.canViewValuesOnOwnRecord, false);
+        assert.equal(field.field.validators.length, 0);
+        assert.equal(field.field.useAsListFilter, false);
+    });
+
+    it('createFieldObject Date has dateFormat', () => {
+        const p = createParser();
+        const field = p.createFieldObject(1, 'My Date', 'Date');
+        assert.equal(field.field.dateFormat, 1);
+    });
+
+    it('createFieldObject Number has numeric properties', () => {
+        const p = createParser();
+        const field = p.createFieldObject(1, 'Score', 'Number');
+        assert.equal(field.field.decimalsCount, 0);
+        assert.equal(field.field.displayFormatType, 'numeric');
+        assert.equal(field.field.inputFormat, 'numeric');
+        assert.equal(field.field.rangeMinValue, null);
+        assert.equal(field.field.rangeMaxValue, null);
+    });
+
+    it('createFieldObject Number supports decimalsCount option', () => {
+        const p = createParser();
+        const field = p.createFieldObject(1, 'Score', 'Number', { decimalsCount: 2 });
+        assert.equal(field.field.decimalsCount, 2);
+    });
+
+    it('createFieldObject MultiLineText has useMarkdownPreview', () => {
+        const p = createParser();
+        const field = p.createFieldObject(1, 'Desc', 'MultiLineText');
+        assert.equal(field.field.useMarkdownPreview, 0);
+    });
+
+    it('createFieldObject SingleOptionDataset has dataset properties', () => {
+        const p = createParser();
+        const field = p.createFieldObject(1, 'Status', 'SingleOptionDataset', {
+            schemaSpecIdDataset: '|dataset-my-status-id|'
+        });
+        assert.equal(field.field.subtype, 'dropdown');
+        assert.equal(field.field.schemaSpecIdDataset, '|dataset-my-status-id|');
+        assert.equal(field.field.optionFormat.components[0].type, 'field');
+        assert.equal(field.field.optionFormat.components[0].order, 0);
+        assert.equal(field.field.hasToKeepHistoricalValues, false);
+        assert.equal(field.field.allowsSemanticSuggestions, false);
+    });
+
+    it('addFormFieldToForm with SingleOptionDataset sets schemaSpecIdDataset on import column', () => {
+        const p = createParser();
+        const { virtualId } = p.addNewForm('Test Form');
+        p.addFormFieldToForm(virtualId, 'Status', 'SingleOptionDataset', {
+            schemaSpecIdDataset: '|dataset-status-id|'
+        });
+        const importItem = p.findImportServiceForForm(virtualId);
+        const statusCol = importItem.data.importerSpec.columns
+            .find(c => c.fieldName === 'Status');
+        assert.ok(statusCol);
+        assert.equal(statusCol.schemaSpecIdDataset, '|dataset-status-id|');
+    });
+
+    it('addFormField with SingleOptionDataset sets schemaSpecIdDataset on import column', () => {
+        const p = createParser();
+        const { virtualId } = p.addNewForm('Dataset Test');
+        p.addFormFieldToForm(virtualId, 'My Status', 'SingleOptionDataset', {
+            schemaSpecIdDataset: '|dataset-mystatus-id|'
+        });
+        const importItem = p.findImportServiceForForm(virtualId);
+        const statusCol = importItem.data.importerSpec.columns
+            .find(c => c.fieldName === 'My Status');
+        assert.ok(statusCol);
+        assert.equal(statusCol.schemaSpecIdDataset, '|dataset-mystatus-id|');
+    });
+
+    it('addNewForm initial field has common extra properties', () => {
+        const p = createParser();
+        const { virtualId } = p.addNewForm('Rich Form');
+        const formItem = p.getFormSpecItemByVirtualId(virtualId);
+        const field = formItem.data.content.spec.fields[0];
+        assert.equal(field.field.mediaDescription, null);
+        assert.equal(field.field.canViewValuesOnOwnRecord, false);
+    });
+});
+
 describe('Flow CRUD', () => {
     it('addFlow creates a new flow', () => {
         const p = createParser();
@@ -354,6 +441,26 @@ describe('Trigger CRUD', () => {
         const before = flow.triggers.length;
         p.removeTrigger(flow.code, 'Remove Me');
         assert.equal(flow.triggers.length, before - 1);
+    });
+
+    it('addTrigger supports mapping entries', () => {
+        const p = createParser();
+        const flow = p.getIntegrationItem().flows[0];
+        const trigger = {
+            name: 'Mapped Trigger', type_id: 3,
+            mapping: [
+                { label: 'candidateId', required: true },
+                { label: 'optionalField', required: false },
+            ],
+            entity_id: 2, entity_extension_id: 2
+        };
+        p.addTrigger(flow.code, trigger);
+        const added = flow.triggers.find(t => t.name === 'Mapped Trigger');
+        assert.equal(added.mapping.length, 2);
+        assert.equal(added.mapping[0].label, 'candidateId');
+        assert.equal(added.mapping[0].required, true);
+        assert.equal(added.mapping[1].label, 'optionalField');
+        assert.equal(added.mapping[1].required, false);
     });
 });
 

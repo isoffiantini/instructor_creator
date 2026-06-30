@@ -140,8 +140,8 @@ const Parser = {
     getSections() {
         return [
             { id: 'overview', label: 'Overview', badge: 'gray' },
-            { id: 'form', label: 'Form Fields', badge: 'green' },
             { id: 'datasets', label: 'Datasets', badge: 'blue' },
+            { id: 'form', label: 'Form Fields', badge: 'green' },
             { id: 'imports', label: 'Import Services', badge: 'orange' },
             { id: 'integration', label: 'Integration', badge: 'purple' },
             { id: 'triggers', label: 'Triggers', badge: 'red' },
@@ -189,11 +189,21 @@ const Parser = {
         return null;
     },
 
-    addFormField(label, type, options = {}) {
-        const fields = this.getFormFieldsRef();
-        if (!fields) return false;
-        const item = this.getFormSpecItem();
-        const fieldNumber = item.data.nextFieldNumber || fields.length + 1;
+    createFieldObject(fieldNumber, label, type, options = {}) {
+        const commonExtra = {
+            mediaDescription: null,
+            canViewValuesOnOwnRecord: false,
+            appRoleIdsRestrictedVisibility: [],
+            defaultValue: null,
+            canonicalName: null,
+            validators: [],
+            useAsListFilter: false,
+            useAsListColumn: false,
+            appRoleIdsRestrictedEdition: [],
+            canEditValuesOnOwnRecord: false,
+            hasToIgnoreRolesRestrictionOnCreation: false,
+            hasToIgnoreConditionsOnCreation: false,
+        };
         const field = {
             field: {
                 fieldNumber, label, type,
@@ -202,10 +212,48 @@ const Parser = {
                 saved: true, editable: true,
                 schemaFieldId: null,
                 description: options.description || '',
-                displayConditions: [], editConditions: []
+                displayConditions: [], editConditions: [],
+                ...commonExtra,
             }
         };
-        if (type === 'MultiLineText') field.field.useMarkdownPreview = 0;
+        if (type === 'MultiLineText') {
+            field.field.useMarkdownPreview = 0;
+        }
+        if (type === 'Date') {
+            field.field.dateFormat = options.dateFormat ?? 1;
+        }
+        if (type === 'Number') {
+            field.field.decimalsCount = options.decimalsCount ?? 0;
+            field.field.isTrailingZeros = false;
+            field.field.displayFormatType = 'numeric';
+            field.field.displayFormatSubType = 'numeric';
+            field.field.numRatings = null;
+            field.field.isAllowHalfValues = false;
+            field.field.inputFormat = 'numeric';
+            field.field.rangeMinValue = null;
+            field.field.rangeMaxValue = null;
+        }
+        if (type === 'SingleOptionDataset') {
+            field.field.subtype = 'dropdown';
+            field.field.schemaSpecIdDataset = options.schemaSpecIdDataset || null;
+            field.field.datasetFilters = [];
+            field.field.optionFormat = { id: null, components: [{ type: 'field', order: 0, fieldNumberOrText: 1 }] };
+            field.field.optionFormatForJournal = { id: null, components: [{ type: 'field', order: 0, fieldNumberOrText: 1 }] };
+            field.field.hasToKeepHistoricalValues = false;
+            field.field.prePopulateFieldIfOnlyOneOption = false;
+            field.field.hasSingleUseRowsDataset = 0;
+            field.field.allowsSemanticSuggestions = false;
+            field.field.enableSemanticSuggestions = false;
+        }
+        return field;
+    },
+
+    addFormField(label, type, options = {}) {
+        const fields = this.getFormFieldsRef();
+        if (!fields) return false;
+        const item = this.getFormSpecItem();
+        const fieldNumber = item.data.nextFieldNumber || fields.length + 1;
+        const field = this.createFieldObject(fieldNumber, label, type, options);
         fields.push(field);
         item.data.nextFieldNumber = fieldNumber + 1;
         if (item.virtualIdsByPath) {
@@ -309,7 +357,8 @@ const Parser = {
                 groupName: `job - ${formName}`, isDefaultable: true, isConvertible: true,
                 columnInfoMessage: '', type: 'schemaFieldRelatedToJob',
                 fieldType: f.field.type, wrappedFieldType: null,
-                schemaSpecIdDataset: null, isSchemaFieldRelatedtoJob: true,
+                schemaSpecIdDataset: f.field.schemaSpecIdDataset || null,
+                isSchemaFieldRelatedtoJob: true,
                 targetId: null, jobIdToRelate: 0, jobTitleToRelate: `job - ${formName}`,
                 schemaSpecId: formSpecId, schemaFieldNumber: fn,
                 tableFieldNumber: null, formName: formName,
@@ -329,18 +378,7 @@ const Parser = {
         if (!fields) return false;
         const item = this.getFormSpecItemByVirtualId(virtualId);
         const fieldNumber = item.data.nextFieldNumber || fields.length + 1;
-        const field = {
-            field: {
-                fieldNumber, label, type,
-                visible: options.visible !== false,
-                required: options.required || false,
-                saved: true, editable: true,
-                schemaFieldId: null,
-                description: options.description || '',
-                displayConditions: [], editConditions: []
-            }
-        };
-        if (type === 'MultiLineText') field.field.useMarkdownPreview = 0;
+        const field = this.createFieldObject(fieldNumber, label, type, options);
         fields.push(field);
         item.data.nextFieldNumber = fieldNumber + 1;
         if (item.virtualIdsByPath) {
@@ -377,16 +415,7 @@ const Parser = {
         const virtualId = `|form-${slug}-library-item-id|`;
         const specVirtualId = `|form-${slug}-spec-id|`;
 
-        const initialFields = {
-            field: {
-                fieldNumber: 1,
-                label: `${name} Field 1`,
-                type: 'SingleLineText',
-                visible: true, required: false, saved: true, editable: true,
-                schemaFieldId: null, description: '',
-                displayConditions: [], editConditions: []
-            }
-        };
+        const initialFields = this.createFieldObject(1, `${name} Field 1`, 'SingleLineText');
 
         const formInstruction = {
             driver: 'configmanagement',

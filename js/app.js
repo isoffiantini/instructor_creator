@@ -230,7 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 Renderer.showStatus('Please enter a field label', 'warning');
                 return;
             }
-            Parser.addFormFieldToForm(virtualId, labelInput.value.trim(), typeSelect.value);
+            const options = {};
+            if (typeSelect.value === 'SingleOptionDataset') {
+                const datasetSelect = formEditor.querySelector('.ff-new-dataset');
+                if (datasetSelect && datasetSelect.value) {
+                    options.schemaSpecIdDataset = datasetSelect.value;
+                }
+            }
+            Parser.addFormFieldToForm(virtualId, labelInput.value.trim(), typeSelect.value, options);
             formEditor.querySelector('.add-field-to-form').style.display = 'none';
             labelInput.value = '';
             this.refreshCurrentSection();
@@ -341,6 +348,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
+        addTriggerMapping(btn) {
+            const form = btn.closest('.add-trigger-form');
+            const labelInput = form.querySelector('.new-mapping-label');
+            const requiredCheck = form.querySelector('.new-mapping-required');
+            if (!labelInput || !labelInput.value.trim()) return;
+            const list = form.querySelector('.trigger-mapping-list');
+            const entry = document.createElement('div');
+            entry.className = 'mapping-entry';
+            entry.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 6px;margin-top:4px;background:#f3f4f6;border-radius:4px;font-size:0.85rem;';
+            entry.innerHTML = `
+                <span style="flex:1;">${labelInput.value.trim()}${requiredCheck.checked ? ' <span class="required">*</span>' : ''}</span>
+                <button onclick="this.parentElement.remove()" class="btn-icon danger" style="font-size:0.8rem;" title="Remove mapping">✕</button>
+                <input type="hidden" class="mapping-label" value="${labelInput.value.trim()}" />
+                <input type="hidden" class="mapping-required" value="${requiredCheck.checked ? 'true' : 'false'}" />
+            `;
+            list.appendChild(entry);
+            labelInput.value = '';
+            requiredCheck.checked = false;
+            labelInput.focus();
+        },
+
         confirmAddTrigger(flowCode, btn) {
             const form = btn.closest('.add-trigger-form');
             const nameInput = form.querySelector('.new-trigger-name');
@@ -350,18 +378,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 Renderer.showStatus('Please enter a trigger name', 'warning');
                 return;
             }
+            const mapping = [];
+            const mappingEntries = form.querySelectorAll('.mapping-entry');
+            mappingEntries.forEach(entry => {
+                const label = entry.querySelector('.mapping-label')?.value;
+                const required = entry.querySelector('.mapping-required')?.value === 'true';
+                if (label) mapping.push({ label, required });
+            });
             const trigger = {
                 name: nameInput.value.trim(),
                 type_id: parseInt(typeSelect.value),
                 description: descInput?.value?.trim() || '',
                 create_automatic_log_entries: true,
                 create_automatic_journal_entries: true,
-                mapping: [],
+                mapping,
                 entity_id: 2,
                 entity_extension_id: 2
             };
             if (trigger.type_id === 3) {
                 trigger.include_name = true;
+            }
+            if (trigger.type_id === 4) {
+                trigger.mapping = [];
             }
             Parser.addTrigger(flowCode, trigger);
             form.style.display = 'none';

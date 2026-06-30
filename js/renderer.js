@@ -60,6 +60,20 @@ const Renderer = {
         return div.innerHTML;
     },
 
+    toggleDatasetSelect(selectEl) {
+        const row = selectEl.closest('.add-field-to-form').querySelector('.ff-dataset-row');
+        if (row) {
+            row.style.display = selectEl.value === 'SingleOptionDataset' ? 'block' : 'none';
+        }
+    },
+
+    toggleTriggerMappingSection(selectEl) {
+        const section = selectEl.closest('.add-trigger-form').querySelector('.trigger-mapping-section');
+        if (section) {
+            section.style.display = selectEl.value === '3' ? 'block' : 'none';
+        }
+    },
+
     renderForm(forms) {
         if (!forms || forms.length === 0) return '<div class="status-message">No forms found</div>';
 
@@ -102,11 +116,12 @@ const Renderer = {
                 }
             }
 
+            const datasets = Parser.getAllDatasets ? Parser.getAllDatasets() : [];
             html += `</ul>
                 <div class="add-field-to-form" style="display:none; margin-top: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: #f9fafb;">
                     <div style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr auto;">
                         <input type="text" class="ff-new-label editor-input" placeholder="Field label..." />
-                        <select class="ff-new-type editor-select">
+                        <select class="ff-new-type editor-select" onchange="Renderer.toggleDatasetSelect(this)">
                             <option value="SingleLineText">Single Line Text</option>
                             <option value="MultiLineText">Multi Line Text</option>
                             <option value="Number">Number</option>
@@ -118,6 +133,12 @@ const Renderer = {
                             <button onclick="App.confirmAddFormFieldToForm('${this.esc(form.virtualId || '')}', this)" class="btn primary small">Add</button>
                             <button onclick="this.closest('.add-field-to-form').style.display='none'" class="btn secondary small">Cancel</button>
                         </div>
+                    </div>
+                    <div class="ff-dataset-row" style="display:none; margin-top: 8px; grid-template-columns: 1fr;">
+                        <select class="ff-new-dataset editor-select" style="width:100%;">
+                            <option value="">-- Select dataset --</option>
+                            ${datasets.map(d => `<option value="${this.esc(d.virtualId)}">${this.esc(d.title)}</option>`).join('')}
+                        </select>
                     </div>
                 </div>
             </div>`;
@@ -410,11 +431,22 @@ const Renderer = {
                 <div style="font-weight: 600; margin-bottom: 10px;">New Trigger for <span class="flow-name-inline">${this.esc(flow.name)}</span></div>
                 <div style="display: grid; gap: 10px;">
                     <input type="text" class="new-trigger-name editor-input" placeholder="Trigger name..." />
-                    <select class="new-trigger-type editor-select">
+                    <select class="new-trigger-type editor-select" onchange="Renderer.toggleTriggerMappingSection(this)">
                         <option value="3">Workflow Step Action</option>
                         <option value="4">HTTP Endpoint</option>
                     </select>
                     <textarea class="new-trigger-desc editor-input" placeholder="Description..." rows="2"></textarea>
+                    <div class="trigger-mapping-section" style="display:none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+                        <div style="font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Mapping</div>
+                        <div class="trigger-mapping-list"></div>
+                        <div style="display: flex; gap: 6px; margin-top: 6px;">
+                            <input type="text" class="new-mapping-label editor-input" placeholder="Label (e.g. candidateId)" style="flex:1;" />
+                            <label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;white-space:nowrap;">
+                                <input type="checkbox" class="new-mapping-required" /> Required
+                            </label>
+                            <button onclick="App.addTriggerMapping(this)" class="btn primary small">+</button>
+                        </div>
+                    </div>
                     <div>
                         <button onclick="App.confirmAddTrigger('${this.esc(flow.code)}', this)" class="btn primary small">Add Trigger</button>
                         <button onclick="this.closest('.add-trigger-form').style.display='none'" class="btn secondary small">Cancel</button>
