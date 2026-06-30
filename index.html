@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment Tool Integration Viewer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Assessment Tool Integration Viewer</h1>
+            <p class="subtitle">Select an integration definition from the instructors folder</p>
+        </header>
+
+        <!-- File Selection Section -->
+        <div class="file-selector">
+            <div class="selector-group">
+                <label for="categorySelect">Category:</label>
+                <select id="categorySelect">
+                    <option value="assessment_tools">Assessment Tools</option>
+                    <!-- Add more categories as needed -->
+                </select>
+            </div>
+            <div class="selector-group">
+                <label for="instructorSelect">Choose an instructor JSON:</label>
+                <select id="instructorSelect">
+                    <option value="">-- Select a file --</option>
+                </select>
+                <button id="loadBtn" class="btn primary">Load Integration</button>
+            </div>
+            <div class="selector-group">
+                <span class="or-text">or</span>
+                <label class="upload-label" for="fileInput">📁 Upload Custom JSON</label>
+                <input type="file" id="fileInput" accept=".json">
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message hidden"></div>
+
+        <!-- Content Container -->
+        <div id="contentContainer" class="content hidden">
+            <div class="step-indicator" id="stepIndicator"></div>
+            
+            <div id="sectionsContainer">
+                <!-- Dynamic Form Section - will be shown when needed -->
+                <div id="dynamic-form-section" class="step-content" style="display: none;">
+                    <h2>📝 Dynamic Form Fields</h2>
+                    <p>Add or remove fields as needed for your assessment</p>
+                    
+                    <div id="dynamic-form-container">
+                        <div id="fields-wrapper">
+                            <!-- Fields will be added here by JavaScript -->
+                        </div>
+                        <button type="button" onclick="addField()" class="add-field-btn">
+                            + Add Field
+                        </button>
+                    </div>
+                    
+                    <!-- Optional: Show collected data -->
+                    <div class="form-actions">
+                        <button onclick="showFormData()" class="btn secondary">Show Collected Data</button>
+                        <button onclick="clearAllFields()" class="btn danger">Clear All Fields</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="nav-buttons">
+                <button class="nav-btn secondary" id="prevBtn" disabled>← Previous</button>
+                <button class="nav-btn primary" id="nextBtn">Next →</button>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+            <div class="icon">📄</div>
+            <h3>No Integration Loaded</h3>
+            <p>Select an instructor from the dropdown or upload a custom JSON file to get started.</p>
+        </div>
+    </div>
+
+    <script src="js/parser.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/dynamic-form.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
