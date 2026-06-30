@@ -797,7 +797,10 @@ const Parser = {
         this.updateIntegrationUser(camel || 'vendor');
         const integration = this.getIntegrationItem();
         if (integration) {
-            integration.name = integration.name || `${name} Assessment Tool`;
+            integration.code = camel || 'vendor';
+            if (!integration.name || integration.name === 'Default Assessment Tool') {
+                integration.name = `${name} Assessment Tool`;
+            }
         }
     },
 

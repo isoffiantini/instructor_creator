@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node js/server.js",
     "dev": "node js/server.js",
+    "test": "node --test tests/*.test.*",
     "build": "echo 'Build complete - static site ready'"
   },
   "keywords": ["assessment", "integration", "json", "viewer"],

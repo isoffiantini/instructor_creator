@@ -390,9 +390,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const vendorName = Parser.getVendorName() || 'custom';
+            const integration = Parser.getIntegrationItem();
+            const vendorCode = integration?.code || Parser.getVendorName() || 'custom';
             a.href = url;
-            a.download = `${vendorName.toLowerCase().replace(/\s+/g, '_')}_assessment_integration.json`;
+            a.download = `${vendorCode.toLowerCase().replace(/\s+/g, '_')}_assessment.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
